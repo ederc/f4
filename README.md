@@ -1,0 +1,3 @@
+- Debug buid: `cargo build`
+- Optimized build: `cargo build --release`
+- Test build: `cargo test`
