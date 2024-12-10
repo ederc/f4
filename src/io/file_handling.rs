@@ -21,13 +21,13 @@ impl Config {
 /// 3. The **remaining lines** consist of the polynomials generating the system to be solved. The 
 ///    polynomials must be commata separated, no shorthand notation, i.e. use `*` between 
 ///    variables, coefficients etc. and use `^` for exponents of variables.
-pub fn read_file(config: Config) -> (Vec<String>, u32, Vec<usize>, Vec<i32>, Vec<i32>) {
+pub fn read_file(config: Config) -> (Vec<String>, i32, Vec<usize>, Vec<i32>, Vec<i32>) {
     let contents  = fs::read_to_string(config.file_path)
         .expect("Should have been able to read the file")
         .replace(" ", "");
     let lines: Vec<&str> = contents.lines().collect();
     let variables: Vec<String> = lines[0].split(",").map(String::from).collect();
-    let characteristic: u32 = lines[1].parse::<u32>().unwrap_or(u32::MAX);
+    let characteristic: i32 = lines[1].parse::<i32>().unwrap_or(-1);
     if characteristic != 0 && !is_prime(&characteristic.to_string()) {
         panic!("Wrong characteristic!");
     }
@@ -38,9 +38,9 @@ pub fn read_file(config: Config) -> (Vec<String>, u32, Vec<usize>, Vec<i32>, Vec
     let mut exponents: Vec<i32>    = Vec::new();
     let mut coefficients: Vec<i32> = Vec::new();
     let mut lengths: Vec<usize>    = Vec::new();
-    for i in 2..lines.len() {
-        lengths.push(lines[i].chars().filter(|v| *v == '+' || *v == '-').count() + 1);
-        for positive_start in lines[i].split('+') {
+    for p in polynomials {
+        lengths.push(p.chars().filter(|v| *v == '+' || *v == '-').count() + 1);
+        for positive_start in p.split('+') {
             let monomials = positive_start.split('-').filter(|v| !v.is_empty());
             let mut sign: i32 = 1;
             for mons in monomials {
@@ -69,10 +69,12 @@ pub fn read_file(config: Config) -> (Vec<String>, u32, Vec<usize>, Vec<i32>, Vec
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     #[should_panic]
     fn test_read_file() {
-        let config = super::Config { file_path: "".to_string() };
-        super::read_file(config);
+        let config = Config { file_path: "".to_string() };
+        read_file(config);
     }
 }
