@@ -25,6 +25,10 @@ pub fn read_file(config: Config) -> (Vec<String>, i32, Vec<usize>, Vec<Vec<i32>>
     let contents  = fs::read_to_string(config.file_path)
         .expect("Should have been able to read the file")
         .replace(" ", "");
+    return read_input_system(contents);
+}
+
+fn read_input_system(contents: String) -> (Vec<String>, i32, Vec<usize>, Vec<Vec<i32>>, Vec<i32>) {
     let lines: Vec<&str> = contents.lines().collect();
     let variables: Vec<String> = lines[0].split(",").map(String::from).collect();
     let characteristic: i32 = lines[1].parse::<i32>().unwrap_or(-1);
@@ -75,8 +79,20 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_read_file() {
+    fn test_read_file_no_input() {
         let config = Config { file_path: "".to_string() };
         read_file(config);
+    }
+
+    #[test]
+    fn test_read_input_system() {
+        let contents = "x,y\n32003\n12*x^2*y-345,100*x-\n3*y^2";
+        let (variables, characteristic, lengths, coefficients, exponents)
+            = read_input_system(contents.to_string());
+        assert_eq!(variables, ["x", "y"]);
+        assert_eq!(characteristic, 32003);
+        assert_eq!(lengths, [2, 2]);
+        assert_eq!(coefficients, [[12, -345], [100, -3]]);
+        assert_eq!(exponents, [2, 1, 0, 0, 1, 0, 0, 2]);
     }
 }
