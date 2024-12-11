@@ -13,7 +13,7 @@ fn main() {
     println!("cfs {:?}", coefficients);
     println!("len {:?}", lengths);
     println!("and char is {}", characteristic);
-    let mut map: HashMap<Vec<i32>, i32> = HashMap::new();
+    let map: HashMap<Vec<i32>, i32> = HashMap::new();
     // for i in (0..exponents.len()).step_by(variables.len()) {
     //     println!("{:?}", &exponents[i..i+variables.len()]);
     //     map.insert(&exponents[i..i+variables.len()]);
