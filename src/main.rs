@@ -10,7 +10,9 @@ use std::collections::HashMap;
 fn main() {
     let config = Config::new();
     let (variables, characteristic, lengths, coefficients, exponents) = read_file(config);
-    println!("cfs {:?}", coefficients);
+    for c in coefficients.into_iter() {
+    println!("cfs {:?}", c);
+    }
     println!("len {:?}", lengths);
     println!("and char is {}", characteristic);
     let map: HashMap<Vec<i32>, i32> = HashMap::new();

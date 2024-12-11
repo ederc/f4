@@ -21,7 +21,7 @@ impl Config {
 /// 3. The **remaining lines** consist of the polynomials generating the system to be solved. The 
 ///    polynomials must be commata separated, no shorthand notation, i.e. use `*` between 
 ///    variables, coefficients etc. and use `^` for exponents of variables.
-pub fn read_file(config: Config) -> (Vec<String>, i32, Vec<usize>, Vec<i32>, Vec<i32>) {
+pub fn read_file(config: Config) -> (Vec<String>, i32, Vec<usize>, Vec<Vec<i32>>, Vec<i32>) {
     let contents  = fs::read_to_string(config.file_path)
         .expect("Should have been able to read the file")
         .replace(" ", "");
@@ -36,9 +36,10 @@ pub fn read_file(config: Config) -> (Vec<String>, i32, Vec<usize>, Vec<i32>, Vec
     let polynomials: Vec<&str> = tmp.split(",").collect();
     // read in each equation
     let mut exponents: Vec<i32>    = Vec::new();
-    let mut coefficients: Vec<i32> = Vec::new();
+    let mut coefficients: Vec<Vec<i32>> = Vec::new();
     let mut lengths: Vec<usize>    = Vec::new();
     for p in polynomials {
+        let mut cfs: Vec<i32> = Vec::new();
         lengths.push(p.chars().filter(|v| *v == '+' || *v == '-').count() + 1);
         for positive_start in p.split('+') {
             let monomials = positive_start.split('-').filter(|v| !v.is_empty());
@@ -46,7 +47,7 @@ pub fn read_file(config: Config) -> (Vec<String>, i32, Vec<usize>, Vec<i32>, Vec
             for mons in monomials {
                 // first entry is the only positive one
                 let mon: Vec<&str> = mons.split('*').filter(|v| !v.is_empty()).collect();
-                coefficients.push(sign * mon[0].parse::<i32>().unwrap_or(1));
+                cfs.push(sign * mon[0].parse::<i32>().unwrap_or(1));
                 let mut exp: Vec<i32> = vec![0; variables.len()];
                 for m in mon.iter() {
                     let tmp: Vec<&str> = m.split('^').collect();
@@ -63,6 +64,7 @@ pub fn read_file(config: Config) -> (Vec<String>, i32, Vec<usize>, Vec<i32>, Vec
                 sign = -1;
             }
         }
+        coefficients.push(cfs);
     }
     return (variables, characteristic, lengths, coefficients, exponents);
 }
