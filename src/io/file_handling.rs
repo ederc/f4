@@ -60,7 +60,9 @@ fn read_input_system(contents: String) ->
                     let tmp: Vec<&str> = m.split('^').collect();
                     let idx = variables.iter().position(|n| n == tmp[0]).unwrap_or(usize::MAX);
                     if idx != usize::MAX {
-                        exp[idx] = if tmp.len() == 2 {
+                        // Applying `+=` and not `=` to also read in monomials
+                        // given e.g. as x^2*y*x correctly.
+                        exp[idx] += if tmp.len() == 2 {
                             tmp[1].parse::<i32>().unwrap()
                         } else {
                             1
