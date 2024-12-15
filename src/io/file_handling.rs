@@ -101,4 +101,15 @@ mod tests {
         assert_eq!(coefficients, [[12, -345], [100, -3]]);
         assert_eq!(exponents, [[[2, 1], [0, 0]], [[1, 0], [0, 2]]]);
     }
+    #[test]
+    fn test_read_monomials_with_doubled_variables() {
+        let contents = "x,y\n32003\n12*x^2*y*y^3";
+        let (variables, characteristic, lengths, coefficients, exponents)
+            = read_input_system(contents.to_string());
+        assert_eq!(variables, ["x", "y"]);
+        assert_eq!(characteristic, 32003);
+        assert_eq!(lengths, [1]);
+        assert_eq!(coefficients, [[12]]);
+        assert_eq!(exponents, [[[2, 4]]]);
+    }
 }
