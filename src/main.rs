@@ -1,11 +1,14 @@
 mod io;
+mod hash_table;
 mod arithmetic;
 use crate::io::file_handling::{
     read_file,
     Config
 };
+use crate::hash_table::{
+    HashTable,
+};
 
-use std::collections::HashMap;
 
 fn main() {
     let config = Config::new();
@@ -15,7 +18,7 @@ fn main() {
     }
     println!("len {:?}", lengths);
     println!("and char is {}", characteristic);
-    let map: HashMap<Vec<i32>, i32> = HashMap::new();
+    let hashtable: HashTable = HashTable::new(variables.len());
     // for i in (0..exponents.len()).step_by(variables.len()) {
     //     println!("{:?}", &exponents[i..i+variables.len()]);
     //     map.insert(&exponents[i..i+variables.len()]);
