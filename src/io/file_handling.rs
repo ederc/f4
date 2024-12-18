@@ -23,7 +23,7 @@ impl Config {
 ///    polynomials must be commata separated, no shorthand notation, i.e. use `*` between 
 ///    variables, coefficients etc. and use `^` for exponents of variables.
 pub fn read_file(config: Config) ->
-        (Vec<String>, i32, Vec<usize>, Vec<Vec<i32>>, Vec<Vec<Vec<Exponent>>>) {
+        (Vec<String>, Characteristic, Vec<usize>, Vec<Vec<Coefficient>>, Vec<Vec<Vec<Exponent>>>) {
     let contents  = fs::read_to_string(config.file_path)
         .expect("Should have been able to read the file")
         .replace(" ", "");
@@ -31,10 +31,10 @@ pub fn read_file(config: Config) ->
 }
 
 fn read_input_system(contents: String) ->
-        (Vec<String>, i32, Vec<usize>, Vec<Vec<i32>>, Vec<Vec<Vec<u32>>>) {
+        (Vec<String>, Characteristic, Vec<usize>, Vec<Vec<Coefficient>>, Vec<Vec<Vec<Exponent>>>) {
     let lines: Vec<&str> = contents.lines().collect();
     let variables: Vec<String> = lines[0].split(",").map(String::from).collect();
-    let characteristic: i32 = lines[1].parse::<i32>().unwrap_or(-1);
+    let characteristic: Characteristic = lines[1].parse::<Characteristic>().unwrap_or(-1);
     if characteristic != 0 && !is_prime(&characteristic.to_string()) {
         panic!("Wrong characteristic!");
     }
@@ -43,19 +43,19 @@ fn read_input_system(contents: String) ->
     let polynomials: Vec<&str> = tmp.split(",").collect();
     // read in each equation
     let mut exponents: Vec<Vec<Vec<Exponent>>> = Vec::new();
-    let mut coefficients: Vec<Vec<i32>>   = Vec::new();
+    let mut coefficients: Vec<Vec<Coefficient>>   = Vec::new();
     let mut lengths: Vec<usize>           = Vec::new();
     for p in polynomials {
-        let mut cfs: Vec<i32>       = Vec::new();
+        let mut cfs: Vec<Coefficient>       = Vec::new();
         let mut exps: Vec<Vec<Exponent>> = Vec::new();
         lengths.push(p.chars().filter(|v| *v == '+' || *v == '-').count() + 1);
         for positive_start in p.split('+') {
             let monomials = positive_start.split('-').filter(|v| !v.is_empty());
-            let mut sign: i32 = 1;
+            let mut sign: Coefficient = 1;
             for mons in monomials {
                 // first entry is the only positive one
                 let mon: Vec<&str> = mons.split('*').filter(|v| !v.is_empty()).collect();
-                cfs.push(sign * mon[0].parse::<i32>().unwrap_or(1));
+                cfs.push(sign * mon[0].parse::<Coefficient>().unwrap_or(1));
                 let mut exp: Vec<Exponent> = vec![0; variables.len()];
                 for m in mon.iter() {
                     let tmp: Vec<&str> = m.split('^').collect();
