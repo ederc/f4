@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use is_prime::is_prime;
+use crate::types::*;
 
 pub struct Config {
     file_path: String,
@@ -22,7 +23,7 @@ impl Config {
 ///    polynomials must be commata separated, no shorthand notation, i.e. use `*` between 
 ///    variables, coefficients etc. and use `^` for exponents of variables.
 pub fn read_file(config: Config) ->
-        (Vec<String>, i32, Vec<usize>, Vec<Vec<i32>>, Vec<Vec<Vec<i32>>>) {
+        (Vec<String>, i32, Vec<usize>, Vec<Vec<i32>>, Vec<Vec<Vec<Exponent>>>) {
     let contents  = fs::read_to_string(config.file_path)
         .expect("Should have been able to read the file")
         .replace(" ", "");
@@ -30,7 +31,7 @@ pub fn read_file(config: Config) ->
 }
 
 fn read_input_system(contents: String) ->
-        (Vec<String>, i32, Vec<usize>, Vec<Vec<i32>>, Vec<Vec<Vec<i32>>>) {
+        (Vec<String>, i32, Vec<usize>, Vec<Vec<i32>>, Vec<Vec<Vec<u32>>>) {
     let lines: Vec<&str> = contents.lines().collect();
     let variables: Vec<String> = lines[0].split(",").map(String::from).collect();
     let characteristic: i32 = lines[1].parse::<i32>().unwrap_or(-1);
@@ -41,12 +42,12 @@ fn read_input_system(contents: String) ->
     let tmp = &lines[2..lines.len()].join("");
     let polynomials: Vec<&str> = tmp.split(",").collect();
     // read in each equation
-    let mut exponents: Vec<Vec<Vec<i32>>> = Vec::new();
+    let mut exponents: Vec<Vec<Vec<Exponent>>> = Vec::new();
     let mut coefficients: Vec<Vec<i32>>   = Vec::new();
     let mut lengths: Vec<usize>           = Vec::new();
     for p in polynomials {
         let mut cfs: Vec<i32>       = Vec::new();
-        let mut exps: Vec<Vec<i32>> = Vec::new();
+        let mut exps: Vec<Vec<Exponent>> = Vec::new();
         lengths.push(p.chars().filter(|v| *v == '+' || *v == '-').count() + 1);
         for positive_start in p.split('+') {
             let monomials = positive_start.split('-').filter(|v| !v.is_empty());
@@ -55,7 +56,7 @@ fn read_input_system(contents: String) ->
                 // first entry is the only positive one
                 let mon: Vec<&str> = mons.split('*').filter(|v| !v.is_empty()).collect();
                 cfs.push(sign * mon[0].parse::<i32>().unwrap_or(1));
-                let mut exp: Vec<i32> = vec![0; variables.len()];
+                let mut exp: Vec<Exponent> = vec![0; variables.len()];
                 for m in mon.iter() {
                     let tmp: Vec<&str> = m.split('^').collect();
                     let idx = variables.iter().position(|n| n == tmp[0]).unwrap_or(usize::MAX);
@@ -63,7 +64,7 @@ fn read_input_system(contents: String) ->
                         // Applying `+=` and not `=` to also read in monomials
                         // given e.g. as x^2*y*x correctly.
                         exp[idx] += if tmp.len() == 2 {
-                            tmp[1].parse::<i32>().unwrap()
+                            tmp[1].parse::<Exponent>().unwrap()
                         } else {
                             1
                         };
