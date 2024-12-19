@@ -3,7 +3,7 @@ mod io;
 mod hash_table;
 mod arithmetic;
 
-use crate::io::file_handling::{
+use crate::io::input::{
     read_file,
     Config
 };
