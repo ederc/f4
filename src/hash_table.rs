@@ -45,7 +45,6 @@ impl HashTable {
     }
 
     fn get_hash(&self, exp: &Vec<Exponent>) -> HashValue {
-        println!("{:?}", exp);
         let mut h: HashValue = 0;
         for i in 0..exp.len() {
             h = h.wrapping_add(exp[i] as HashValue * self.random_seed[i]);
@@ -54,7 +53,6 @@ impl HashTable {
     }
 
     fn insert(& mut self, exp: Vec<Exponent>) -> HashValue {
-        println!("{:?}", exp);
         let div = self.map.len() - 1;
         let h = self.get_hash(&exp);
         let mut k = h;
@@ -106,7 +104,6 @@ mod tests {
     fn test_insert() {
         let mut ht = HashTable::new(3);
         let pos = ht.insert(vec![1,1,1]);
-        println!("pos {}", pos);
         assert_eq!(pos, 1);
     }
 }
