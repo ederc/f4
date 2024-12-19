@@ -5,7 +5,7 @@ const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 pub struct HashTable {
     exponents     : Vec<Vec<Exponent>>,
     values        : Vec<HashValue>,
-    random_seed   : Vec<Exponent>,
+    random_seed   : Vec<HashValue>,
     map           : Vec<HashTableLength>,
     indices       : Vec<HashValue>,
     divisor_masks : Vec<DivisorMask>,
@@ -30,11 +30,9 @@ impl HashTable {
     }
 
     fn update_seed(&self, mut seed: HashValue) -> HashValue {
-        let mut _seed: u32 = seed as u32; 
-        _seed ^= _seed << 13;
-        _seed ^= _seed >> 17;
-        _seed ^= _seed << 5;
-        seed = _seed as usize;
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
         return seed;
     }
 
@@ -50,7 +48,7 @@ impl HashTable {
         println!("{:?}", exp);
         let mut h: HashValue = 0;
         for i in 0..exp.len() {
-            h += exp[i] * self.random_seed[i];
+            h = h.wrapping_add(exp[i] as HashValue * self.random_seed[i]);
         }
         return h;
     }
@@ -81,7 +79,7 @@ impl HashTable {
         let pos = self.exponents.len();
         self.map[k] = pos;
         self.exponents.push(exp);
-        self.values[pos] = h;
+        self.values.push(h);
 
         return pos;
     }
