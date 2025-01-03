@@ -2,6 +2,9 @@ use std::env;
 use std::fs;
 use is_prime::is_prime;
 use crate::types::*;
+use crate::basis::{
+    Basis
+};
 
 pub struct Config {
     file_path: String,
@@ -114,3 +117,9 @@ mod tests {
         assert_eq!(exponents, [[[2, 4]]]);
     }
 }
+
+
+// pub fn get_initial_basis() -> Basis {
+//
+//     return basis:
+// }

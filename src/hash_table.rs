@@ -2,27 +2,38 @@ use crate::types::*;
 // 2^17
 const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 
+struct Monomial {
+    degree: Degree,
+    divisor_mask: DivisorMask,
+    exponents: Vec<Exponent>,
+    last_known_divisor: BasisLength,
+}
+
 pub struct HashTable {
-    exponents     : Vec<Vec<Exponent>>,
+    monomials     : Vec<Monomial>,
     values        : Vec<HashValue>,
     random_seed   : Vec<HashValue>,
     map           : Vec<HashTableLength>,
     indices       : Vec<HashValue>,
-    divisor_masks : Vec<DivisorMask>,
 }
 
 impl HashTable {
     pub fn new(nr_variables: usize) -> HashTable {
         let mut ht = HashTable {
-            exponents     : Vec::new(),
+            monomials     : Vec::new(),
             values        : Vec::new(),
             random_seed   : Vec::new(),
             map           : vec![0; INITIAL_HASH_TABLE_SIZE],
             indices       : vec![0; INITIAL_HASH_TABLE_SIZE],
-            divisor_masks : vec![0; INITIAL_HASH_TABLE_SIZE],
         };
         // initialize entry at index 0 with useless data
-        ht.exponents.push(vec![u32::MAX]);
+
+        ht.monomials.push(Monomial {
+                degree: Degree::MAX,
+                divisor_mask: DivisorMask::MAX,
+                exponents: vec![0; nr_variables],
+                last_known_divisor: BasisLength::MAX,
+        });
         ht.values.push(0);
         ht.generate_random_seed(nr_variables);
 
@@ -42,6 +53,15 @@ impl HashTable {
             seed = self.update_seed(seed);
             self.random_seed.push(seed);
         }
+    }
+
+    // The divisor mask template is generated once the
+    // input polynomials are read in.
+    fn generate_divisor_mask(& mut self) {
+    }
+
+    fn get_divisor_mask(& mut self, exp: &Vec<Exponent>) -> DivisorMask {
+        return 0;
     }
 
     fn get_hash(&self, exp: &Vec<Exponent>) -> HashValue {
@@ -67,16 +87,22 @@ impl HashTable {
                 i += 1;
                 continue;
             }
-            let eh = &self.exponents[hm];
+            let eh = &self.monomials[hm].exponents;
             if *eh != exp {
                 i += 1;
                 continue;
             }
             return hm;
         }
-        let pos = self.exponents.len();
+        let pos = self.monomials.len();
         self.map[k] = pos;
-        self.exponents.push(exp);
+        let monomial = Monomial {
+            degree: exp.iter().sum(),
+            divisor_mask: self.get_divisor_mask(&exp),
+            exponents: exp,
+            last_known_divisor: 0,
+        };
+        self.monomials.push(monomial);
         self.values.push(h);
 
         return pos;

@@ -9,3 +9,8 @@ pub type DivisorMask = usize;
 // Field stuff
 pub type Characteristic = i32;
 pub type Coefficient = Characteristic;
+
+// Basis stuff
+pub type Degree = u32;
+pub type BasisLength = usize;
+
