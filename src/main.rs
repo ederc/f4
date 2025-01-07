@@ -4,7 +4,7 @@ mod hash_table;
 mod arithmetic;
 mod basis;
 
-use crate::io::input::{
+use crate::io::{
     read_file,
     Config
 };
