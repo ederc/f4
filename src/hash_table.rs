@@ -58,6 +58,28 @@ impl HashTable {
     // The divisor mask template is generated once the
     // input polynomials are read in.
     fn generate_divisor_mask(& mut self) {
+        debug_assert!(self.monomials.len() > 0);
+        let nr_monomials = self.monomials.len();
+        let mut exps: Vec<&Vec<Exponent>> = Vec::new();
+        for mon in self.monomials.iter() {
+            exps.push(&mon.exponents);
+        }
+        let nr_variables = exps[0].len();
+        let mut maxv: Vec<Exponent> = vec!(0; nr_variables);
+        let mut minv: Vec<Exponent> = vec!(0; nr_variables);
+
+        for i in 0..nr_variables {
+            maxv[i] = exps[0][i];
+            minv[i] = exps[0][i];
+            for j in 1..nr_monomials {
+                if exps[j][i] > maxv[i] {
+                    maxv[i] = exps[j][i];
+                    continue;
+                } else if exps[j][i] < minv[i] {
+                    minv[i] = exps[j][i];
+                }
+            }
+        }
     }
 
     fn get_divisor_mask(& mut self, exp: &Vec<Exponent>) -> DivisorMask {
