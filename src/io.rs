@@ -26,7 +26,7 @@ impl Config {
 ///    polynomials must be commata separated, no shorthand notation, i.e. use `*` between 
 ///    variables, coefficients etc. and use `^` for exponents of variables.
 pub fn read_file(config: Config) ->
-        (Vec<String>, Characteristic, Vec<usize>, Vec<Vec<Coefficient>>, Vec<Vec<Vec<Exponent>>>) {
+        (Vec<String>, Characteristic, Vec<Vec<Coefficient>>, Vec<Vec<Vec<Exponent>>>) {
     let contents  = fs::read_to_string(config.file_path)
         .expect("Should have been able to read the file")
         .replace(" ", "");
@@ -34,7 +34,7 @@ pub fn read_file(config: Config) ->
 }
 
 fn read_input_system(contents: String) ->
-        (Vec<String>, Characteristic, Vec<usize>, Vec<Vec<Coefficient>>, Vec<Vec<Vec<Exponent>>>) {
+        (Vec<String>, Characteristic, Vec<Vec<Coefficient>>, Vec<Vec<Vec<Exponent>>>) {
     let lines: Vec<&str> = contents.lines().collect();
     let variables: Vec<String> = lines[0].split(",").map(String::from).collect();
     let characteristic: Characteristic = lines[1].parse::<Characteristic>().unwrap_or(-1);
@@ -46,12 +46,10 @@ fn read_input_system(contents: String) ->
     let polynomials: Vec<&str> = tmp.split(",").collect();
     // read in each equation
     let mut exponents: Vec<Vec<Vec<Exponent>>> = Vec::new();
-    let mut coefficients: Vec<Vec<Coefficient>>   = Vec::new();
-    let mut lengths: Vec<usize>           = Vec::new();
+    let mut coefficients: Vec<Vec<Coefficient>> = Vec::new();
     for p in polynomials {
-        let mut cfs: Vec<Coefficient>       = Vec::new();
+        let mut cfs: Vec<Coefficient>    = Vec::new();
         let mut exps: Vec<Vec<Exponent>> = Vec::new();
-        lengths.push(p.chars().filter(|v| *v == '+' || *v == '-').count() + 1);
         for positive_start in p.split('+') {
             let monomials = positive_start.split('-').filter(|v| !v.is_empty());
             let mut sign: Coefficient = 1;
@@ -80,7 +78,7 @@ fn read_input_system(contents: String) ->
         exponents.push(exps);
         coefficients.push(cfs);
     }
-    return (variables, characteristic, lengths, coefficients, exponents);
+    return (variables, characteristic, coefficients, exponents);
 }
 
 #[cfg(test)]
@@ -97,22 +95,20 @@ mod tests {
     #[test]
     fn test_read_input_system() {
         let contents = "x,y\n32003\n12*x^2*y-345,100*x-\n3*y^2";
-        let (variables, characteristic, lengths, coefficients, exponents)
+        let (variables, characteristic, coefficients, exponents)
             = read_input_system(contents.to_string());
         assert_eq!(variables, ["x", "y"]);
         assert_eq!(characteristic, 32003);
-        assert_eq!(lengths, [2, 2]);
         assert_eq!(coefficients, [[12, -345], [100, -3]]);
         assert_eq!(exponents, [[[2, 1], [0, 0]], [[1, 0], [0, 2]]]);
     }
     #[test]
     fn test_read_monomials_with_doubled_variables() {
         let contents = "x,y\n32003\n12*x^2*y*y^3";
-        let (variables, characteristic, lengths, coefficients, exponents)
+        let (variables, characteristic, coefficients, exponents)
             = read_input_system(contents.to_string());
         assert_eq!(variables, ["x", "y"]);
         assert_eq!(characteristic, 32003);
-        assert_eq!(lengths, [1]);
         assert_eq!(coefficients, [[12]]);
         assert_eq!(exponents, [[[2, 4]]]);
     }
