@@ -1,4 +1,5 @@
 use crate::types::*;
+use std::cmp;
 // 2^17
 const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 
@@ -11,31 +12,39 @@ struct Monomial {
 
 pub struct HashTable {
     monomials     : Vec<Monomial>,
-    values        : Vec<HashValue>,
     random_seed   : Vec<HashValue>,
+    values        : Vec<HashValue>,
     map           : Vec<HashTableLength>,
+    divisor_bounds: Vec<Exponent>,
     indices       : Vec<HashValue>,
+    nr_variables  : usize,
 }
 
 impl HashTable {
-    pub fn new(nr_variables: usize) -> HashTable {
+    pub fn new(initial_exponents: &Vec<Vec<Vec<Exponent>>>) -> HashTable {
+        debug_assert!(initial_exponents.len() > 0);
+        debug_assert!(initial_exponents[0].len() > 0);
+        debug_assert!(initial_exponents[0][0].len() > 0);
         let mut ht = HashTable {
-            monomials     : Vec::new(),
-            values        : Vec::new(),
-            random_seed   : Vec::new(),
-            map           : vec![0; INITIAL_HASH_TABLE_SIZE],
-            indices       : vec![0; INITIAL_HASH_TABLE_SIZE],
+            monomials      : Vec::new(),
+            random_seed    : Vec::new(),
+            values         : Vec::new(),
+            map            : vec![0; INITIAL_HASH_TABLE_SIZE],
+            divisor_bounds : Vec::new(),
+            indices        : vec![0; INITIAL_HASH_TABLE_SIZE],
+            nr_variables   : initial_exponents[0][0].len(),
         };
         // initialize entry at index 0 with useless data
 
         ht.monomials.push(Monomial {
                 degree: Degree::MAX,
                 divisor_mask: DivisorMask::MAX,
-                exponents: vec![0; nr_variables],
+                exponents: vec![0; ht.nr_variables],
                 last_known_divisor: BasisLength::MAX,
         });
         ht.values.push(0);
-        ht.generate_random_seed(nr_variables);
+        ht.generate_random_seed(ht.nr_variables);
+        ht.generate_divisor_bounds(&initial_exponents);
 
         return ht;
     }
@@ -57,33 +66,36 @@ impl HashTable {
 
     // The divisor mask template is generated once the
     // input polynomials are read in.
-    fn generate_divisor_mask(& mut self) {
-        debug_assert!(self.monomials.len() > 0);
-        let nr_monomials = self.monomials.len();
-        let mut exps: Vec<&Vec<Exponent>> = Vec::new();
-        for mon in self.monomials.iter() {
-            exps.push(&mon.exponents);
-        }
-        let nr_variables = exps[0].len();
-        let mut maxv: Vec<Exponent> = vec!(0; nr_variables);
-        let mut minv: Vec<Exponent> = vec!(0; nr_variables);
+    // TODO: Opptimize the divisor mask: If #variables < usize::BITS we leave
+    // a part of the divisor mask 0 and do not use it.
+    fn generate_divisor_bounds(& mut self, initial_exponents: &Vec<Vec<Vec<Exponent>>>) {
+        let length_divmask = cmp::min(
+            self.nr_variables, usize::BITS.try_into().unwrap());
 
-        for i in 0..nr_variables {
-            maxv[i] = exps[0][i];
-            minv[i] = exps[0][i];
-            for j in 1..nr_monomials {
-                if exps[j][i] > maxv[i] {
-                    maxv[i] = exps[j][i];
+        for i in 0..length_divmask {
+            let mut max = initial_exponents[0][0][i];
+            let mut min = initial_exponents[0][0][i];
+            for e in initial_exponents.into_iter().flatten() {
+                if e[i] > max {
+                    max = e[i];
                     continue;
-                } else if exps[j][i] < minv[i] {
-                    minv[i] = exps[j][i];
+                } else if e[i] < min {
+                    min = e[i];
                 }
             }
+            self.divisor_bounds.push(max-min);
         }
     }
 
     fn get_divisor_mask(& mut self, exp: &Vec<Exponent>) -> DivisorMask {
-        return 0;
+        let divisor_bounds = &self.divisor_bounds;
+        let mut divisor_mask = 0usize;
+        for i in 0..exp.len() {
+            if exp[i] >= divisor_bounds[i] {
+                divisor_mask |= 1 << i;
+            }
+        }
+        return divisor_mask;
     }
 
     fn get_hash(&self, exp: &Vec<Exponent>) -> HashValue {
@@ -118,6 +130,7 @@ impl HashTable {
         }
         let pos = self.monomials.len();
         self.map[k] = pos;
+        println!("exponent {:?}", exp);
         let monomial = Monomial {
             degree: exp.iter().sum(),
             divisor_mask: self.get_divisor_mask(&exp),
@@ -137,7 +150,8 @@ mod tests {
 
     #[test]
     fn test_random_seed() {
-        let ht = HashTable::new(5);
+        let exp: Vec<Vec<Vec<Exponent>>> = vec!(vec!(vec!(1,1,1,1,1)));
+        let ht = HashTable::new(&exp);
         if std::mem::size_of::<usize>() == 4 {
         assert_eq!(ht.random_seed,
             [723471715, 2497366906, 2064144800, 2008045182, 3532304609]);
@@ -150,8 +164,25 @@ mod tests {
     }
     #[test]
     fn test_insert() {
-        let mut ht = HashTable::new(3);
-        let pos = ht.insert(vec![1,1,1]);
+        let exp: Vec<Vec<Exponent>> = vec!(vec![1,1,1]);
+        let mut ht = HashTable::new(&vec!(exp.clone()));
+        let pos = ht.insert(exp[0].clone());
         assert_eq!(pos, 1);
     }
+    #[test]
+    fn test_generate_divisor_bounds() {
+        let exps: Vec<Vec<Vec<Exponent>>> = vec!(vec!(
+            vec![1,1,1],
+            vec![2,0,3]));
+        let mut ht = HashTable::new(&exps);
+        let _pos = ht.insert(exps[0][0].clone());
+        let _pos = ht.insert(exps[0][1].clone());
+        assert_eq!(ht.divisor_bounds, [1,1,1]);
+    }
+
+        
+
+
+
+
 }
