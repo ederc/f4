@@ -101,7 +101,7 @@ impl HashTable {
     fn get_hash(&self, exp: &Vec<Exponent>) -> HashValue {
         let mut h: HashValue = 0;
         for i in 0..exp.len() {
-            h = h.wrapping_add(exp[i] as HashValue * self.random_seed[i]);
+            h = h.wrapping_add((exp[i] as HashValue).wrapping_mul(self.random_seed[i]));
         }
         return h;
     }
@@ -172,12 +172,12 @@ mod tests {
     #[test]
     fn test_generate_divisor_bounds() {
         let exps: Vec<Vec<Vec<Exponent>>> = vec!(vec!(
-            vec![1,1,1],
+            vec![1,1,3],
             vec![2,0,3]));
         let mut ht = HashTable::new(&exps);
         let _pos = ht.insert(exps[0][0].clone());
         let _pos = ht.insert(exps[0][1].clone());
-        assert_eq!(ht.divisor_bounds, [1,1,1]);
+        assert_eq!(ht.divisor_bounds, [1,1,0]);
     }
 
         
