@@ -28,7 +28,7 @@ impl<'a> HashTable<'a> {
         let mut ht = HashTable {
             monomials      : Vec::new(),
             random_seed    : Vec::new(),
-            values         : Vec::new(),
+            values         : vec![0; INITIAL_HASH_TABLE_SIZE],
             map            : vec![0; INITIAL_HASH_TABLE_SIZE],
             divisor_bounds : Vec::new(),
             indices        : vec![0; INITIAL_HASH_TABLE_SIZE],
@@ -132,7 +132,7 @@ impl<'a> HashTable<'a> {
             last_known_divisor: 0,
         };
         self.monomials.push(monomial);
-        self.values.push(h);
+        self.values[pos] = h;
 
         return pos;
     }
@@ -180,10 +180,4 @@ mod tests {
         assert_eq!(*ht.monomials[0].exponents, [1,1,3]);
         assert_eq!(*ht.monomials[1].exponents, [2,0,4]);
     }
-
-        
-
-
-
-
 }
