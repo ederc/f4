@@ -26,7 +26,7 @@ impl Config {
 ///    polynomials must be commata separated, no shorthand notation, i.e. use `*` between 
 ///    variables, coefficients etc. and use `^` for exponents of variables.
 pub fn read_file(config: Config) ->
-        (Vec<String>, Characteristic, Vec<Vec<Coefficient>>, Vec<Vec<Vec<Exponent>>>) {
+        (Vec<String>, Characteristic, Vec<CoeffVec>, Vec<Vec<ExpVec>>) {
     let contents  = fs::read_to_string(config.file_path)
         .expect("Should have been able to read the file")
         .replace(" ", "");
@@ -34,7 +34,7 @@ pub fn read_file(config: Config) ->
 }
 
 fn read_input_system(contents: String) ->
-        (Vec<String>, Characteristic, Vec<Vec<Coefficient>>, Vec<Vec<Vec<Exponent>>>) {
+        (Vec<String>, Characteristic, Vec<CoeffVec>, Vec<Vec<ExpVec>>) {
     let lines: Vec<&str> = contents.lines().collect();
     let variables: Vec<String> = lines[0].split(",").map(String::from).collect();
     let characteristic: Characteristic = lines[1].parse::<Characteristic>().unwrap_or(-1);
@@ -45,11 +45,11 @@ fn read_input_system(contents: String) ->
     let tmp = &lines[2..lines.len()].join("");
     let polynomials: Vec<&str> = tmp.split(",").collect();
     // read in each equation
-    let mut exponents: Vec<Vec<Vec<Exponent>>> = Vec::new();
-    let mut coefficients: Vec<Vec<Coefficient>> = Vec::new();
+    let mut exponents: Vec<Vec<ExpVec>> = Vec::new();
+    let mut coefficients: Vec<CoeffVec> = Vec::new();
     for p in polynomials {
-        let mut cfs: Vec<Coefficient>    = Vec::new();
-        let mut exps: Vec<Vec<Exponent>> = Vec::new();
+        let mut cfs: CoeffVec    = Vec::new();
+        let mut exps: Vec<ExpVec> = Vec::new();
         for positive_start in p.split('+') {
             let monomials = positive_start.split('-').filter(|v| !v.is_empty());
             let mut sign: Coefficient = 1;
@@ -57,7 +57,7 @@ fn read_input_system(contents: String) ->
                 // first entry is the only positive one
                 let mon: Vec<&str> = mons.split('*').filter(|v| !v.is_empty()).collect();
                 cfs.push(sign * mon[0].parse::<Coefficient>().unwrap_or(1));
-                let mut exp: Vec<Exponent> = vec![0; variables.len()];
+                let mut exp: ExpVec = vec![0; variables.len()];
                 for m in mon.iter() {
                     let tmp: Vec<&str> = m.split('^').collect();
                     let idx = variables.iter().position(|n| n == tmp[0]).unwrap_or(usize::MAX);

@@ -6,7 +6,7 @@ const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 struct Monomial<'a> {
     degree: Degree,
     divisor_mask: DivisorMask,
-    exponents: &'a Vec<Exponent>,
+    exponents: &'a ExpVec,
     last_known_divisor: BasisLength,
 }
 
@@ -15,13 +15,13 @@ pub struct HashTable<'a> {
     random_seed   : Vec<HashValue>,
     values        : Vec<HashValue>,
     map           : Vec<HashTableLength>,
-    divisor_bounds: Vec<Exponent>,
+    divisor_bounds: ExpVec,
     indices       : Vec<HashValue>,
     nr_variables  : usize,
 }
 
 impl<'a> HashTable<'a> {
-    pub fn new(initial_exponents: &'a Vec<Vec<Vec<Exponent>>>) -> HashTable<'a> {
+    pub fn new(initial_exponents: &'a Vec<Vec<ExpVec>>) -> HashTable<'a> {
         debug_assert!(initial_exponents.len() > 0);
         debug_assert!(initial_exponents[0].len() > 0);
         debug_assert!(initial_exponents[0][0].len() > 0);
@@ -62,7 +62,7 @@ impl<'a> HashTable<'a> {
     // input polynomials are read in.
     // TODO: Opptimize the divisor mask: If #variables < usize::BITS we leave
     // a part of the divisor mask 0 and do not use it.
-    fn generate_divisor_bounds(& mut self, initial_exponents: &Vec<Vec<Vec<Exponent>>>) {
+    fn generate_divisor_bounds(& mut self, initial_exponents: &Vec<Vec<ExpVec>>) {
         let length_divmask = cmp::min(
             self.nr_variables, usize::BITS.try_into().unwrap());
 
@@ -81,7 +81,7 @@ impl<'a> HashTable<'a> {
         }
     }
 
-    fn get_divisor_mask(& mut self, exp: &Vec<Exponent>) -> DivisorMask {
+    fn get_divisor_mask(& mut self, exp: &ExpVec) -> DivisorMask {
         let divisor_bounds = &self.divisor_bounds;
         let mut divisor_mask = 0usize;
         for i in 0..exp.len() {
@@ -92,7 +92,7 @@ impl<'a> HashTable<'a> {
         return divisor_mask;
     }
 
-    fn get_hash(&self, exp: &Vec<Exponent>) -> HashValue {
+    fn get_hash(&self, exp: &ExpVec) -> HashValue {
         let mut h: HashValue = 0;
         for i in 0..exp.len() {
             h = h.wrapping_add((exp[i] as HashValue).wrapping_mul(self.random_seed[i]));
@@ -100,7 +100,7 @@ impl<'a> HashTable<'a> {
         return h;
     }
 
-    fn insert(& mut self, exp: &'a Vec<Exponent>) -> HashValue {
+    fn insert(& mut self, exp: &'a ExpVec) -> HashValue {
         let div = self.map.len() - 1;
         let h = self.get_hash(exp);
         let mut k = h;
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_random_seed() {
-        let exp: Vec<Vec<Vec<Exponent>>> = vec!(vec!(vec!(1,1,1,1,1)));
+        let exp: Vec<Vec<ExpVec>> = vec!(vec!(vec!(1,1,1,1,1)));
         let ht = HashTable::new(&exp);
         if std::mem::size_of::<usize>() == 4 {
         assert_eq!(ht.random_seed,
@@ -158,14 +158,14 @@ mod tests {
     }
     #[test]
     fn test_insert() {
-        let exp: Vec<Vec<Vec<Exponent>>> = vec!(vec!(vec![1,1,1]));
+        let exp: Vec<Vec<ExpVec>> = vec!(vec!(vec![1,1,1]));
         let mut ht = HashTable::new(&exp);
         let pos = ht.insert(&vec![1 as Exponent,1,1]);
         assert_eq!(pos, 0);
     }
     #[test]
     fn test_generate_divisor_bounds() {
-        let exps: Vec<Vec<Vec<Exponent>>> = vec!(vec!(
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(
             vec![1,1,3],
             vec![2,0,3]));
         let ht = HashTable::new(&exps);
@@ -173,7 +173,7 @@ mod tests {
     }
     #[test]
     fn test_init_hash_table() {
-        let exps: Vec<Vec<Vec<Exponent>>> = vec!(vec!(
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(
             vec![1,1,3],
             vec![2,0,4]));
         let mut ht = HashTable::new(&exps);

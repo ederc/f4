@@ -20,10 +20,11 @@ fn main() {
     for c in coefficients {
     println!("cfs {:?}", c);
     }
-    let exp: Vec<Exponent> = vec![1,1,1];
+    let exp: ExpVec = vec![1,1,1];
     println!("and char is {}", characteristic);
     println!("size {}", std::mem::size_of::<usize>());
-    let hash_table: HashTable = HashTable::new(&exponents);
+    let mut hash_table: HashTable = HashTable::new(&exponents);
+    // let mut basis: Basis = Basis:new(
     // for i in (0..exponents.len()).step_by(variables.len()) {
     //     println!("{:?}", &exponents[i..i+variables.len()]);
     //     map.insert(&exponents[i..i+variables.len()]);
