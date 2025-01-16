@@ -31,7 +31,7 @@ impl<'a> Basis<'a> {
         basis.sort_elements_by_drl();
         return basis;
     }
-    
+
     fn sort_elements_by_drl(&mut self) {
         return self.elements.sort_by(
             |a,b| self.hash_table.cmp_monomials_by_drl(
