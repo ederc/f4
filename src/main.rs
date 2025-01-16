@@ -6,10 +6,10 @@ mod basis;
 
 use crate::io::{
     read_file,
-    Config
+    Config,
 };
 use crate::hash_table::{
-    HashTable
+    HashTable,
 };
 
 use crate::types::*;

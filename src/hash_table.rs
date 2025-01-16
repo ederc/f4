@@ -1,5 +1,8 @@
 use crate::types::*;
-use std::cmp;
+use std::cmp:: {
+    Ordering,
+    min,
+};
 // 2^17
 const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 
@@ -63,7 +66,7 @@ impl<'a> HashTable<'a> {
     // TODO: Opptimize the divisor mask: If #variables < usize::BITS we leave
     // a part of the divisor mask 0 and do not use it.
     fn generate_divisor_bounds(& mut self, initial_exponents: &Vec<Vec<ExpVec>>) {
-        let length_divmask = cmp::min(
+        let length_divmask = min(
             self.nr_variables, usize::BITS.try_into().unwrap());
 
         for i in 0..length_divmask {
@@ -98,6 +101,23 @@ impl<'a> HashTable<'a> {
             h = h.wrapping_add((exp[i] as HashValue).wrapping_mul(self.random_seed[i]));
         }
         return h;
+    }
+
+    pub fn cmp_monomials_by_drl(&self, a: HashTableLength, b:HashTableLength) -> Ordering {
+        debug_assert!(
+            self.monomials[a].exponents.len() == self.monomials[b].exponents.len());
+        let ma = &self.monomials[a];
+        let mb = &self.monomials[b];
+        if ma.degree != mb.degree {
+            if ma.degree > mb.degree { return Ordering::Greater; }
+            else { return Ordering::Less; }
+        }
+        // From here on, we know that the degrees are the same
+        for i in (0..ma.exponents.len()).rev() {
+            if ma.exponents[i] < mb.exponents[i] { return Ordering::Greater; }
+            else if ma.exponents[i] < mb.exponents[i] { return Ordering::Less; }
+        }
+        return Ordering::Equal;
     }
 
     fn insert(& mut self, exp: &'a ExpVec) -> HashValue {
@@ -155,6 +175,17 @@ mod tests {
             [660888219700579, 3396719463693796860,
             17326311066685913516, 2586175631380707723, 16544630075375549064]);
         }
+    }
+    #[test]
+    fn test_cmp_monomials_by_drl() {
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(
+            vec![1,1,3],
+            vec![2,1,3],
+            vec![2,0,3]));
+        let ht = HashTable::new(&exps);
+        assert_eq!(ht.cmp_monomials_by_drl(0,1), Ordering::Less);
+        assert_eq!(ht.cmp_monomials_by_drl(0,0), Ordering::Equal);
+        assert_eq!(ht.cmp_monomials_by_drl(2,0), Ordering::Greater);
     }
     #[test]
     fn test_insert() {
