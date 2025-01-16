@@ -120,7 +120,7 @@ impl<'a> HashTable<'a> {
         return Ordering::Equal;
     }
 
-    fn insert(& mut self, exp: &'a ExpVec) -> HashValue {
+    pub fn insert(& mut self, exp: &'a ExpVec) -> HashValue {
         let div = self.map.len() - 1;
         let h = self.get_hash(exp);
         let mut k = h;
