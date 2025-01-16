@@ -1,6 +1,7 @@
 mod types;
 mod io;
 mod hash_table;
+mod meta_data;
 mod arithmetic;
 mod basis;
 
