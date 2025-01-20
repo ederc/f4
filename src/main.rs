@@ -12,19 +12,23 @@ use crate::io::{
 use crate::hash_table::{
     HashTable,
 };
+use crate::basis::{
+    Basis,
+};
 
 use crate::types::*;
 
 fn main() {
     let config = Config::new();
     let (variables, characteristic, coefficients, exponents) = read_file(config);
-    for c in coefficients {
-    println!("cfs {:?}", c);
-    }
-    let exp: ExpVec = vec![1,1,1];
-    println!("and char is {}", characteristic);
-    println!("size {}", std::mem::size_of::<usize>());
-    let mut hash_table: HashTable = HashTable::new(&exponents);
+    let mut basis = Basis::new::<i32>(characteristic, &coefficients, &exponents);
+    // for c in coefficients {
+    // println!("cfs {:?}", c);
+    // }
+    // let exp: ExpVec = vec![1,1,1];
+    // println!("and char is {}", characteristic);
+    // println!("size {}", std::mem::size_of::<usize>());
+    // let mut hash_table: HashTable = HashTable::new(&exponents);
     // let mut basis: Basis = Basis:new(
     // for i in (0..exponents.len()).step_by(variables.len()) {
     //     println!("{:?}", &exponents[i..i+variables.len()]);
