@@ -32,7 +32,7 @@ impl<'a> HashTable<'a> {
             monomials      : Vec::new(),
             random_seed    : Vec::new(),
             values         : vec![0; INITIAL_HASH_TABLE_SIZE],
-            map            : vec![0; INITIAL_HASH_TABLE_SIZE],
+            map            : vec![usize::MAX; INITIAL_HASH_TABLE_SIZE],
             divisor_bounds : Vec::new(),
             indices        : vec![0; INITIAL_HASH_TABLE_SIZE],
             nr_variables   : initial_exponents[0][0].len(),
@@ -115,7 +115,7 @@ impl<'a> HashTable<'a> {
         // From here on, we know that the degrees are the same
         for i in (0..ma.exponents.len()).rev() {
             if ma.exponents[i] < mb.exponents[i] { return Ordering::Greater; }
-            else if ma.exponents[i] < mb.exponents[i] { return Ordering::Less; }
+            else if ma.exponents[i] > mb.exponents[i] { return Ordering::Less; }
         }
         return Ordering::Equal;
     }
@@ -128,7 +128,7 @@ impl<'a> HashTable<'a> {
         while i < self.map.len() {
             k = (k+i) & div;
             let hm = self.map[k];
-            if hm != 0 {
+            if hm == usize::MAX {
                 break;
             }
             if self.values[hm] != h {
@@ -144,7 +144,6 @@ impl<'a> HashTable<'a> {
         }
         let pos = self.monomials.len();
         self.map[k] = pos;
-        println!("exponent {:?}", exp);
         let monomial = Monomial {
             degree: exp.iter().sum(),
             divisor_mask: self.get_divisor_mask(&exp),
@@ -207,7 +206,7 @@ mod tests {
         let exps: Vec<Vec<ExpVec>> = vec!(vec!(
             vec![1,1,3],
             vec![2,0,4]));
-        let mut ht = HashTable::new(&exps);
+        let ht = HashTable::new(&exps);
         assert_eq!(*ht.monomials[0].exponents, [1,1,3]);
         assert_eq!(*ht.monomials[1].exponents, [2,0,4]);
     }
