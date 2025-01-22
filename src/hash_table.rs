@@ -2,19 +2,20 @@ use crate::types::*;
 use std::cmp:: {
     Ordering,
     min,
+    max,
 };
 // 2^17
 const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 
-struct Monomial<'a> {
+struct Monomial {
     degree: Degree,
     divisor_mask: DivisorMask,
-    exponents: &'a ExpVec,
+    exponents: ExpVec,
     last_known_divisor: BasisLength,
 }
 
-pub struct HashTable<'a> {
-    monomials     : Vec<Monomial<'a>>,
+pub struct HashTable {
+    monomials     : Vec<Monomial>,
     random_seed   : Vec<HashValue>,
     values        : Vec<HashValue>,
     map           : Vec<HashTableLength>,
@@ -23,8 +24,9 @@ pub struct HashTable<'a> {
     nr_variables  : usize,
 }
 
-impl<'a> HashTable<'a> {
-    pub fn new(initial_exponents: &'a Vec<Vec<ExpVec>>) -> HashTable<'a> {
+
+impl HashTable {
+    pub fn new(initial_exponents: &Vec<Vec<ExpVec>>) -> HashTable {
         debug_assert!(initial_exponents.len() > 0);
         debug_assert!(initial_exponents[0].len() > 0);
         debug_assert!(initial_exponents[0][0].len() > 0);
@@ -38,10 +40,7 @@ impl<'a> HashTable<'a> {
             nr_variables   : initial_exponents[0][0].len(),
         };
         ht.generate_random_seed(ht.nr_variables);
-        ht.generate_divisor_bounds(&initial_exponents);
-        for e in initial_exponents.into_iter().flatten() {
-            ht.insert(e);
-        }
+        ht.generate_divisor_bounds(initial_exponents);
 
         return ht;
     }
@@ -53,7 +52,18 @@ impl<'a> HashTable<'a> {
         return seed;
     }
 
-    fn generate_random_seed(& mut self, nr_variables: usize) {
+    pub fn get_lcm(
+        &mut self, mon1: HashTableLength, mon2:HashTableLength)
+        -> HashTableLength {
+        let lm_e = &self.monomials[mon1].exponents;
+        let lm_f = &self.monomials[mon2].exponents;
+        return self.insert(lm_e.into_iter()
+            .zip(lm_f)
+            .map(|(a,b)| max(*a,*b))
+            .collect());
+    }
+
+    fn generate_random_seed(&mut self, nr_variables: usize) {
         let mut seed: HashValue = 2463534242;
         for _i in 0..nr_variables {
             seed = self.update_seed(seed);
@@ -65,7 +75,7 @@ impl<'a> HashTable<'a> {
     // input polynomials are read in.
     // TODO: Opptimize the divisor mask: If #variables < usize::BITS we leave
     // a part of the divisor mask 0 and do not use it.
-    fn generate_divisor_bounds(& mut self, initial_exponents: &Vec<Vec<ExpVec>>) {
+    fn generate_divisor_bounds(&mut self, initial_exponents: &Vec<Vec<ExpVec>>) {
         let length_divmask = min(
             self.nr_variables, usize::BITS.try_into().unwrap());
 
@@ -84,7 +94,7 @@ impl<'a> HashTable<'a> {
         }
     }
 
-    fn get_divisor_mask(& mut self, exp: &ExpVec) -> DivisorMask {
+    fn get_divisor_mask(&mut self, exp: &ExpVec) -> DivisorMask {
         let divisor_bounds = &self.divisor_bounds;
         let mut divisor_mask = 0usize;
         for i in 0..exp.len() {
@@ -120,9 +130,9 @@ impl<'a> HashTable<'a> {
         return Ordering::Equal;
     }
 
-    pub fn insert(& mut self, exp: &'a ExpVec) -> HashValue {
+    pub fn insert(&mut self, exp: ExpVec) -> HashTableLength {
         let div = self.map.len() - 1;
-        let h = self.get_hash(exp);
+        let h = self.get_hash(&exp);
         let mut k = h;
         let mut i = 0;
         while i < self.map.len() {
@@ -135,8 +145,8 @@ impl<'a> HashTable<'a> {
                 i += 1;
                 continue;
             }
-            let eh = self.monomials[hm].exponents;
-            if *eh != *exp {
+            let eh = &self.monomials[hm].exponents;
+            if *eh != exp {
                 i += 1;
                 continue;
             }
@@ -181,7 +191,10 @@ mod tests {
             vec![1,1,3],
             vec![2,1,3],
             vec![2,0,3]));
-        let ht = HashTable::new(&exps);
+        let mut ht = HashTable::new(&exps);
+        for e in exps.into_iter().flatten() {
+            ht.insert(e);
+        }
         assert_eq!(ht.cmp_monomials_by_drl(0,1), Ordering::Less);
         assert_eq!(ht.cmp_monomials_by_drl(0,0), Ordering::Equal);
         assert_eq!(ht.cmp_monomials_by_drl(2,0), Ordering::Greater);
@@ -190,7 +203,10 @@ mod tests {
     fn test_insert() {
         let exp: Vec<Vec<ExpVec>> = vec!(vec!(vec![1,1,1]));
         let mut ht = HashTable::new(&exp);
-        let pos = ht.insert(&vec![1 as Exponent,1,1]);
+        for e in exp.into_iter().flatten() {
+            ht.insert(e);
+        }
+        let pos = ht.insert(vec![1 as Exponent,1,1]);
         assert_eq!(pos, 0);
     }
     #[test]
@@ -206,7 +222,10 @@ mod tests {
         let exps: Vec<Vec<ExpVec>> = vec!(vec!(
             vec![1,1,3],
             vec![2,0,4]));
-        let ht = HashTable::new(&exps);
+        let mut ht = HashTable::new(&exps);
+        for e in exps.into_iter().flatten() {
+            ht.insert(e);
+        }
         assert_eq!(*ht.monomials[0].exponents, [1,1,3]);
         assert_eq!(*ht.monomials[1].exponents, [2,0,4]);
     }
