@@ -1,7 +1,6 @@
 mod primitives;
 mod io;
 mod hash_table;
-mod meta_data;
 mod update;
 mod arithmetic;
 mod basis;
@@ -21,16 +20,11 @@ use crate::hash_table::{
     HashTable,
 };
 
-use crate::meta_data::{
-    MetaData,
-};
-
 fn main() {
     let config = Config::new();
     let (variables, characteristic, coefficients, exponents) = read_file(config);
     let mut hash_table = HashTable::new(&exponents);
-    let mut meta_data = MetaData::new(characteristic, coefficients.len());
-    let mut basis = Basis::new::<i32>(&mut hash_table, &meta_data, coefficients, exponents);
+    let mut basis = Basis::new::<i32>(&mut hash_table, characteristic, coefficients, exponents);
     // for c in coefficients {
     // println!("cfs {:?}", c);
     // }

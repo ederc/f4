@@ -8,11 +8,6 @@ use crate::hash_table::{
     HashTable,
 };
 
-use crate::meta_data::{
-    MetaData,
-};
-
-
 enum Criterion {
     Keep,
     Chain,
@@ -25,14 +20,19 @@ pub struct Pair {
     criterion: Criterion,
 }
 
-pub type PairVec = Vec<Pair>;
+type PairVec = Vec<Pair>;
 
-impl PairVec {
+pub struct PairSet {
+    list: PairVec,
+    nr_pairs_reduced: usize,
+    nr_criteria_applied: usize,
+}
+
+impl PairSet {
     pub fn update(
         &mut self,
         basis: &Basis,
-        hash_table: &mut HashTable,
-        meta_data: &MetaData
+        hash_table: &mut HashTable
     ) {
     }
 }
