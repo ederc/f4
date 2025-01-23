@@ -37,6 +37,10 @@ impl PairSet {
         };
     }
 
+    pub fn is_empty(&self) -> bool {
+        return self.list.len() == 0;
+    }
+
     pub fn update(
         &mut self,
         basis: &Basis,

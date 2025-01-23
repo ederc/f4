@@ -30,6 +30,12 @@ fn main() {
     let mut hash_table = HashTable::new(&exponents);
     let mut basis = Basis::new::<i32>(&mut hash_table, characteristic, coefficients, exponents);
     let mut pairs = PairSet::new();
+    while !pairs.is_empty() {
+        pairs.update(&basis, &mut hash_table);
+        basis.update_data();
+    }
+
+
     // for c in coefficients {
     // println!("cfs {:?}", c);
     // }
