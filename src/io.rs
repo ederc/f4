@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 use is_prime::is_prime;
-use crate::types::*;
+use crate::primitives::*;
 use crate::basis::{
     Basis
 };
