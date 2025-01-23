@@ -29,10 +29,28 @@ pub struct PairSet {
 }
 
 impl PairSet {
+    pub fn new() -> PairSet {
+        return PairSet {
+            list               : Vec::new(),
+            nr_pairs_reduced   : 0,
+            nr_criteria_applied: 0,
+        };
+    }
+
     pub fn update(
         &mut self,
         basis: &Basis,
         hash_table: &mut HashTable
     ) {
+        for (i,e) in basis.elements[basis.previous_length..].iter().enumerate() {
+            let mut new_pairs = basis.elements[..basis.previous_length].iter().enumerate().map(|(j,f)|
+                Pair {
+                    lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
+                    generators: (i, j),
+                    // criterion: are_monomials_prime(e, f),
+                    criterion: Criterion::Product,
+                }).collect();
+            self.list.append(&mut new_pairs);
+        }
     }
 }

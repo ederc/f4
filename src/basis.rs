@@ -12,10 +12,10 @@ pub struct Element {
 
 pub struct Basis {
     characteristic: Characteristic,
-    previous_length: BasisLength,
+    pub previous_length: BasisLength,
     is_constant: bool,
     maximum_total_degree: Degree,
-    elements: Vec<Element>,
+    pub elements: Vec<Element>,
     nr_redundant_elements: usize,
     nr_input_generators: usize,
 }
@@ -72,18 +72,9 @@ impl Basis {
                 a.monomials[0], b.monomials[0]));
     }
 
-    // pub fn update_pairs(&mut self, hash_table: &mut HashTable) {
-    //     for (i,e) in self.elements[self.previous_length..].iter().enumerate() {
-    //         let new_pairs = self.elements[..self.previous_length].iter().enumerate().map(|(j,f)|
-    //             Pair {
-    //                 lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
-    //                 generators: (i, j),
-    //                 // criterion: are_monomials_prime(e, f),
-    //                 criterion: Criterion::Product,
-    //             });
-    //     }
-    //     self.previous_length = self.elements.len();
-    // }
+    pub fn update_data(&mut self) {
+        self.previous_length = self.elements.len();
+    }
 }
 
 #[cfg(test)]
