@@ -51,8 +51,9 @@ impl PairSet {
                 Pair {
                     lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
                     generators: (i, j),
-                    // criterion: are_monomials_prime(e, f),
-                    criterion: Criterion::Product,
+                    criterion: if hash_table.are_monomials_coprime(
+                        e.monomials[0], f.monomials[0])
+                        { Criterion::Product } else { Criterion::Keep },
                 }).collect();
             self.list.append(&mut new_pairs);
         }
