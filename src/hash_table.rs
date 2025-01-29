@@ -229,4 +229,15 @@ mod tests {
         assert_eq!(*ht.monomials[0].exponents, [1,1,3]);
         assert_eq!(*ht.monomials[1].exponents, [2,0,4]);
     }
+    #[test]
+    fn test_get_lcm() {
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(
+            vec![1,1,3],
+            vec![2,0,3]));
+        let mut ht = HashTable::new(&exps);
+        ht.insert(exps[0][0].clone());
+        ht.insert(exps[0][1].clone());
+        let lcm = ht.get_lcm(0,1);
+        assert_eq!(ht.monomials[lcm].exponents, [2,1,3]);
+    }
 }
