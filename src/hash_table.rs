@@ -63,6 +63,19 @@ impl HashTable {
             .collect());
     }
 
+    pub fn are_monomials_coprime(
+        &self, mon1: HashTableLength, mon2:HashTableLength)
+        -> bool {
+        let lm_e = &self.monomials[mon1].exponents;
+        let lm_f = &self.monomials[mon2].exponents;
+        if lm_e.into_iter().zip(lm_f).any(|(a,b)| *a!=0 && *b!=0) {
+            return false;
+        }  else {
+            return true;
+        }
+    }
+
+
     fn generate_random_seed(&mut self, nr_variables: usize) {
         let mut seed: HashValue = 2463534242;
         for _i in 0..nr_variables {
@@ -239,5 +252,18 @@ mod tests {
         ht.insert(exps[0][1].clone());
         let lcm = ht.get_lcm(0,1);
         assert_eq!(ht.monomials[lcm].exponents, [2,1,3]);
+    }
+    #[test]
+    fn test_are_monomials_prime() {
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(
+            vec![0,1,0],
+            vec![2,0,3],
+            vec![2,1,0]));
+        let mut ht = HashTable::new(&exps);
+        let m1 = ht.insert(exps[0][0].clone());
+        let m2 = ht.insert(exps[0][1].clone());
+        let m3 = ht.insert(exps[0][1].clone());
+        assert_eq!(ht.are_monomials_coprime(m1, m2), true);
+        assert_eq!(ht.are_monomials_coprime(m3, m2), false);
     }
 }
