@@ -56,7 +56,8 @@ impl PairSet {
                         generators: (i, j),
                         criterion: if hash_table.are_monomials_coprime(
                             e.monomials[0], f.monomials[0])
-                        { Criterion::Product } else { Criterion::Keep },
+                        { Criterion::Product } else if f.is_redundant { Criterion::Chain}
+                        else { Criterion::Keep },
                     }).collect();
 
             // no sorting here, we sort just before extracting
