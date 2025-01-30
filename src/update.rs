@@ -46,15 +46,21 @@ impl PairSet {
         basis: &Basis,
         hash_table: &mut HashTable
     ) {
-        for (i,e) in basis.elements[basis.previous_length..].iter().enumerate() {
-            let mut new_pairs = basis.elements[..basis.previous_length].iter().enumerate().map(|(j,f)|
-                Pair {
-                    lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
-                    generators: (i, j),
-                    criterion: if hash_table.are_monomials_coprime(
-                        e.monomials[0], f.monomials[0])
+        for (i,e) in basis.elements[basis.previous_length..]
+        .iter().enumerate() {
+            // generate new pairs with basis element e
+            let mut new_pairs = basis.elements[..basis.previous_length]
+                .iter().enumerate().map(|(j,f)|
+                    Pair {
+                        lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
+                        generators: (i, j),
+                        criterion: if hash_table.are_monomials_coprime(
+                            e.monomials[0], f.monomials[0])
                         { Criterion::Product } else { Criterion::Keep },
-                }).collect();
+                    }).collect();
+
+            // no sorting here, we sort just before extracting
+            // the pairs in symbolic preprocessing
             self.list.append(&mut new_pairs);
         }
     }

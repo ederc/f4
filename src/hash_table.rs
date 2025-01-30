@@ -15,7 +15,7 @@ pub struct Monomial {
 }
 
 pub struct HashTable {
-    pub monomials     : Vec<Monomial>,
+    pub monomials : Vec<Monomial>,
     random_seed   : Vec<HashValue>,
     values        : Vec<HashValue>,
     map           : Vec<HashTableLength>,
