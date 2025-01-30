@@ -1,5 +1,9 @@
 use crate::primitives::*;
 
+use std::cmp:: {
+    max,
+};
+
 use crate::hash_table::{
     HashTable,
 };
@@ -72,7 +76,11 @@ impl Basis {
                 a.monomials[0], b.monomials[0]));
     }
 
-    pub fn update_data(&mut self) {
+    pub fn update_data(&mut self, hash_table: &HashTable) {
+        self.maximum_total_degree = max(
+            self.maximum_total_degree,
+            hash_table.monomials[self.elements[
+                self.previous_length].monomials[0]].degree);
         self.previous_length = self.elements.len();
     }
 }

@@ -7,15 +7,15 @@ use std::cmp:: {
 // 2^17
 const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 
-struct Monomial {
-    degree: Degree,
+pub struct Monomial {
+    pub degree: Degree,
     divisor_mask: DivisorMask,
     exponents: ExpVec,
     last_known_divisor: BasisLength,
 }
 
 pub struct HashTable {
-    monomials     : Vec<Monomial>,
+    pub monomials     : Vec<Monomial>,
     random_seed   : Vec<HashValue>,
     values        : Vec<HashValue>,
     map           : Vec<HashTableLength>,
