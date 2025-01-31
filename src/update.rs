@@ -49,7 +49,7 @@ impl PairSet {
         for (i,e) in basis.elements[basis.previous_length..]
         .iter().enumerate() {
             // generate new pairs with basis element e
-            let mut new_pairs = basis.elements[..basis.previous_length]
+            let mut new_pairs: PairVec = basis.elements[..basis.previous_length]
                 .iter().enumerate().map(|(j,f)|
                     Pair {
                         lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
@@ -60,6 +60,15 @@ impl PairSet {
                         else { Criterion::Keep },
                     }).collect();
 
+            // Gebauer-Möller: testing old pairs
+            for p in self.list {
+                let deg_p = hash_table.monomials[p.lcm].degree;
+                if deg_p > hash_table.monomials[new_pairs[p.generators.0].lcm].degree
+                    && deg_p > hash_table.monomials[new_pairs[p.generators.1].lcm].degree
+                    && hash_table.divides(e.monomials[0], p.lcm) {
+                        p.criterion = Criterion::Chain;
+                }
+            }
             // no sorting here, we sort just before extracting
             // the pairs in symbolic preprocessing
             self.list.append(&mut new_pairs);
