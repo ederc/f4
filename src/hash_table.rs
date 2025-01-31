@@ -119,7 +119,7 @@ impl HashTable {
 
     // Tests if monomial ma divides monomial mb
     pub fn divides(&self, ma: HashTableLength, mb: HashTableLength) -> bool {
-        if self.monomials[ma].divisor_mask & !self.monomials[mb].divisor_mask == 0 {
+        if self.monomials[ma].divisor_mask & !self.monomials[mb].divisor_mask != 0 {
             return false;
         }
         let ea = &self.monomials[ma].exponents;
@@ -254,6 +254,17 @@ mod tests {
         }
         assert_eq!(*ht.monomials[0].exponents, [1,1,3]);
         assert_eq!(*ht.monomials[1].exponents, [2,0,4]);
+    }
+    #[test]
+    fn test_divides() {
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(vec![1,1,3], vec![2,0,3]));
+        let mut ht = HashTable::new(&exps);
+        let ma = ht.insert(exps[0][0].clone());
+        let mb = ht.insert(vec![1,2,3]);
+        let mc = ht.insert(vec![3,0,4]);
+        assert_eq!(ht.divides(ma, mb), true);
+        assert_eq!(ht.divides(ma, mc), false);
+        assert_eq!(ht.divides(ma, ma), true);
     }
     #[test]
     fn test_get_lcm() {
