@@ -75,7 +75,6 @@ impl HashTable {
         }
     }
 
-
     fn generate_random_seed(&mut self, nr_variables: usize) {
         let mut seed: HashValue = 2463534242;
         for _i in 0..nr_variables {
@@ -116,6 +115,20 @@ impl HashTable {
             }
         }
         return divisor_mask;
+    }
+
+    // Tests if monomial ma divides monomial mb
+    pub fn divides(&self, ma: HashTableLength, mb: HashTableLength) -> bool {
+        if self.monomials[ma].divisor_mask & !self.monomials[mb].divisor_mask == 0 {
+            return false;
+        }
+        let ea = &self.monomials[ma].exponents;
+        let eb = &self.monomials[mb].exponents;
+        if ea.into_iter().zip(eb).any(|(a,b)| a > b) {
+            return false;
+        }  else {
+            return true;
+        }
     }
 
     fn get_hash(&self, exp: &ExpVec) -> HashValue {

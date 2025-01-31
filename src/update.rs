@@ -61,7 +61,7 @@ impl PairSet {
                     }).collect();
 
             // Gebauer-Möller: testing old pairs
-            for p in self.list {
+            for p in &mut self.list {
                 let deg_p = hash_table.monomials[p.lcm].degree;
                 if deg_p > hash_table.monomials[new_pairs[p.generators.0].lcm].degree
                     && deg_p > hash_table.monomials[new_pairs[p.generators.1].lcm].degree
