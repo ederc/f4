@@ -108,7 +108,7 @@ impl PairSet {
             }
 
             // remove useless new pairs
-            new_pairs.retain(|p| p.criterion != Criterion::Keep);
+            new_pairs.retain(|p| p.criterion == Criterion::Keep);
 
             // no sorting here, we sort just before extracting
             // the pairs in symbolic preprocessing
