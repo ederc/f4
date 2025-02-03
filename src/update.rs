@@ -8,6 +8,7 @@ use crate::hash_table::{
     HashTable,
 };
 
+#[derive(PartialEq)]
 enum Criterion {
     Keep,
     Chain,
@@ -69,9 +70,50 @@ impl PairSet {
                         p.criterion = Criterion::Chain;
                 }
             }
+            // sort new pairs for following Gebauer-Möller steps
+            new_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
+
+            // Gebauer-Möller: remove real multiples from new pairs
+            for i in 0..new_pairs.len() {
+                if new_pairs[i].criterion == Criterion::Keep {
+                    for j in 0..i {
+                        if new_pairs[j].criterion != Criterion::Chain
+                            && new_pairs[j].lcm != new_pairs[i].lcm
+                            && hash_table.divides(new_pairs[j].lcm, new_pairs[i].lcm) {
+                                new_pairs[i].criterion = Criterion::Chain;
+                                break;
+                        }
+                    }
+                }
+            }
+
+            // Gebauer-Möller: remove same lcm pairs from new pairs
+            for i in 0..new_pairs.len() {
+                if new_pairs[i].criterion == Criterion::Product {
+                    for j in 0..new_pairs.len() {
+                        if i != j && new_pairs[i].lcm == new_pairs[j].lcm {
+                            new_pairs[j].criterion = Criterion::Chain;
+                        }
+                    }
+                } else if new_pairs[i].criterion == Criterion::Keep {
+                    for j in i-1..=0 {
+                        if new_pairs[j].lcm != new_pairs[i].lcm {
+                            break;
+                        } else if new_pairs[j].criterion == Criterion::Keep {
+                            new_pairs[i].criterion = Criterion::Chain;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // remove useless new pairs
+            new_pairs.retain(|p| p.criterion != Criterion::Keep);
+
             // no sorting here, we sort just before extracting
             // the pairs in symbolic preprocessing
             self.list.append(&mut new_pairs);
+
         }
     }
 }
