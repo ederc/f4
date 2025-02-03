@@ -33,7 +33,7 @@ fn main() {
     loop {
         pairs.update(&basis, &mut hash_table);
         basis.update_data(&hash_table);
-        if pairs.is_empty() {
+        if basis.is_constant || pairs.is_empty() {
             break;
         }
     }

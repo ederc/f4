@@ -84,10 +84,19 @@ impl Basis {
                 .all(|x| hash_table.monomials[self.elements[x[0]].monomials[0]].degree
                     <= hash_table.monomials[self.elements[x[1]].monomials[0]].degree));
 
+        // check for constant
+        if hash_table.monomials[
+            self.elements[self.previous_length].monomials[0]].degree == 0 {
+            self.is_constant == true;
+        }
+
+        // update maximal total degree
         self.maximum_total_degree = max(
             self.maximum_total_degree,
             hash_table.monomials[self.elements[
                 self.elements.len()-1].monomials[0]].degree);
+
+        // update range for newly added elements
         self.previous_length = self.elements.len();
     }
 }
