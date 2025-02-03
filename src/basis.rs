@@ -87,7 +87,7 @@ impl Basis {
         // check for constant
         if hash_table.monomials[
             self.elements[self.previous_length].monomials[0]].degree == 0 {
-            self.is_constant == true;
+            self.is_constant = true;
         }
 
         // update maximal total degree
@@ -98,6 +98,10 @@ impl Basis {
 
         // update range for newly added elements
         self.previous_length = self.elements.len();
+    }
+
+    pub fn is_constant(&self) -> bool {
+        return self.is_constant;
     }
 }
 
@@ -121,14 +125,15 @@ mod tests {
     #[test]
     fn test_update_data() {
         let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3], vec![1,1]], vec![vec![0,2], vec![1,1]]];
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3], vec![1,1]], vec![vec![0,0]]];
         let mut hash_table = HashTable::new(&exps);
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         assert_eq!(basis.previous_length, 0);
         basis.update_data(&hash_table);
         assert_eq!(basis.previous_length, basis.elements.len());
         assert_eq!(basis.maximum_total_degree, 3);
+        assert_eq!(basis.is_constant, true);
     }
 
 }
