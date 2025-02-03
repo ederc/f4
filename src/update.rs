@@ -8,16 +8,14 @@ use crate::hash_table::{
     HashTable,
 };
 
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 enum Criterion {
     Keep,
     Chain,
     Product,
 }
 
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub struct Pair {
     lcm: HashTableLength,
     generators: (BasisLength, BasisLength),
