@@ -9,12 +9,15 @@ use crate::hash_table::{
 };
 
 #[derive(PartialEq)]
+#[derive(Debug)]
 enum Criterion {
     Keep,
     Chain,
     Product,
 }
 
+#[derive(PartialEq)]
+#[derive(Debug)]
 pub struct Pair {
     lcm: HashTableLength,
     generators: (BasisLength, BasisLength),
@@ -23,18 +26,21 @@ pub struct Pair {
 
 type PairVec = Vec<Pair>;
 
+#[derive(Debug)]
 pub struct PairSet {
     list: PairVec,
     nr_pairs_reduced: usize,
-    nr_criteria_applied: usize,
+    nr_product_criterion_applied: usize,
+    nr_chain_criterion_applied: usize,
 }
 
 impl PairSet {
     pub fn new() -> PairSet {
         return PairSet {
-            list               : Vec::new(),
-            nr_pairs_reduced   : 0,
-            nr_criteria_applied: 0,
+            list                         : Vec::new(),
+            nr_pairs_reduced             : 0,
+            nr_product_criterion_applied : 0,
+            nr_chain_criterion_applied   : 0,
         };
     }
 
@@ -50,7 +56,7 @@ impl PairSet {
         for (i,e) in basis.elements[basis.previous_length..]
         .iter().enumerate() {
             // generate new pairs with basis element e
-            let mut new_pairs: PairVec = basis.elements[..basis.previous_length]
+            let mut new_pairs: PairVec = basis.elements[..i]
                 .iter().enumerate().map(|(j,f)|
                     Pair {
                         lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
@@ -95,7 +101,7 @@ impl PairSet {
                             new_pairs[j].criterion = Criterion::Chain;
                         }
                     }
-                } else if new_pairs[i].criterion == Criterion::Keep {
+                } else if new_pairs[i].criterion == Criterion::Keep && i > 0 {
                     for j in i-1..=0 {
                         if new_pairs[j].lcm != new_pairs[i].lcm {
                             break;
@@ -107,13 +113,40 @@ impl PairSet {
                 }
             }
 
-            // remove useless new pairs
-            new_pairs.retain(|p| p.criterion == Criterion::Keep);
-
             // no sorting here, we sort just before extracting
             // the pairs in symbolic preprocessing
             self.list.append(&mut new_pairs);
 
+            // bookkeeping of applied criteria
+            self.nr_product_criterion_applied += self.list.iter().filter(
+                |p| p.criterion == Criterion::Product).count();
+            self.nr_chain_criterion_applied += self.list.iter().filter(
+                |p| p.criterion == Criterion::Chain).count();
+            // remove useless pairs
+            self.list.retain(|p| p.criterion == Criterion::Keep);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_update() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]], vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]], vec![vec![0,0,1], vec![0,0,0]]];
+        let mut hash_table = HashTable::new(&exps);
+        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+
+        let mut pairs = PairSet::new();
+        pairs.update(&basis, &mut hash_table);
+
+        assert_eq!(pairs.list.len(), 2);
+        assert_eq!(pairs.nr_product_criterion_applied, 2);
+        assert_eq!(pairs.nr_chain_criterion_applied, 2);
+        assert_eq!(pairs.list[0], Pair { lcm: 3, generators: (1, 0), criterion: Criterion::Keep } );
+        assert_eq!(pairs.list[1], Pair { lcm: 0, generators: (3, 0), criterion: Criterion::Keep } );
     }
 }

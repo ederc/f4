@@ -10,7 +10,7 @@ const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 pub struct Monomial {
     pub degree: Degree,
     divisor_mask: DivisorMask,
-    exponents: ExpVec,
+    pub exponents: ExpVec,
     last_known_divisor: BasisLength,
 }
 
