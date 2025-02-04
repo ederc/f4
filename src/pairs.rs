@@ -154,7 +154,9 @@ mod tests {
     fn test_update() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3], vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]], vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]], vec![vec![0,0,1], vec![0,0,0]]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
+            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+            vec![vec![0,0,1], vec![0,0,0]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
@@ -171,7 +173,9 @@ mod tests {
     fn test_select_pairs_by_minimal_degree() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3], vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]], vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]], vec![vec![0,0,1], vec![0,0,0]]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
+            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+            vec![vec![0,0,1], vec![0,0,0]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
