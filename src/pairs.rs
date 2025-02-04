@@ -127,8 +127,8 @@ impl PairSet {
 
     fn select_pairs_by_minimal_degree(
         &mut self,
-        hash_table: &mut HashTable,
-        basis: &Basis
+        basis: &Basis,
+        hash_table: &HashTable,
     ) -> PairVec {
 
         // sort pair list by degree
@@ -166,5 +166,20 @@ mod tests {
         assert_eq!(pairs.nr_chain_criterion_applied, 2);
         assert_eq!(pairs.list[0], Pair { lcm: 3, generators: (1, 0), criterion: Criterion::Keep } );
         assert_eq!(pairs.list[1], Pair { lcm: 0, generators: (3, 0), criterion: Criterion::Keep } );
+    }
+    #[test]
+    fn test_select_pairs_by_minimal_degree() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]], vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]], vec![vec![0,0,1], vec![0,0,0]]];
+        let mut hash_table = HashTable::new(&exps);
+        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+
+        let mut pairs = PairSet::new();
+        pairs.update(&basis, &mut hash_table);
+        let min_degree_pairs = pairs.select_pairs_by_minimal_degree(&basis, &hash_table);
+
+        assert_eq!(min_degree_pairs.len(), 1);
+        assert_eq!(min_degree_pairs[0], Pair { lcm: 0, generators: (3, 0), criterion: Criterion::Keep } );
     }
 }
