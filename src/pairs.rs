@@ -26,8 +26,8 @@ type PairVec = Vec<Pair>;
 
 #[derive(Debug)]
 pub struct PairSet {
-    list: PairVec,
-    nr_pairs_reduced: usize,
+    pub list: PairVec,
+    pub nr_pairs_reduced: usize,
     nr_product_criterion_applied: usize,
     nr_chain_criterion_applied: usize,
 }
@@ -123,6 +123,26 @@ impl PairSet {
             // remove useless pairs
             self.list.retain(|p| p.criterion == Criterion::Keep);
         }
+    }
+
+    fn select_pairs_by_degree(
+        &mut self,
+        hash_table: &mut HashTable,
+        basis: &Basis
+    ) -> PairVec {
+
+        // sort pair list by degree
+        self.list.sort_by(|a,b| hash_table.cmp_monomials_by_degree(a.lcm, b.lcm));
+        // get minimal degree pairs
+        let min_degree = hash_table.monomials[self.list[0].lcm].degree;
+        let idx = self.list.iter()
+            .position(|p| hash_table.monomials[p.lcm].degree > min_degree)
+            .unwrap();
+        let min_degree_pairs = self.list.split_off(idx);
+        // bookkeeping
+        self.nr_pairs_reduced += min_degree_pairs.len();
+
+        return min_degree_pairs;
     }
 }
 
