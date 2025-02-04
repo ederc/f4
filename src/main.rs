@@ -1,7 +1,7 @@
 mod primitives;
 mod io;
 mod hash_table;
-mod update;
+mod pairs;
 mod arithmetic;
 mod basis;
 
@@ -20,7 +20,7 @@ use crate::hash_table::{
     HashTable,
 };
 
-use crate::update::{
+use crate::pairs::{
     PairSet,
 };
 
