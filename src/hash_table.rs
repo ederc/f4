@@ -139,6 +139,18 @@ impl HashTable {
         return h;
     }
 
+    pub fn cmp_monomials_by_degree(&self, a: HashTableLength, b:HashTableLength) -> Ordering {
+        debug_assert!(
+            self.monomials[a].exponents.len() == self.monomials[b].exponents.len());
+        let ma = &self.monomials[a];
+        let mb = &self.monomials[b];
+        if ma.degree != mb.degree {
+            if ma.degree > mb.degree { return Ordering::Greater; }
+            else { return Ordering::Less; }
+        }
+        return Ordering::Equal;
+    }
+
     pub fn cmp_monomials_by_drl(&self, a: HashTableLength, b:HashTableLength) -> Ordering {
         debug_assert!(
             self.monomials[a].exponents.len() == self.monomials[b].exponents.len());
@@ -210,6 +222,20 @@ mod tests {
             [660888219700579, 3396719463693796860,
             17326311066685913516, 2586175631380707723, 16544630075375549064]);
         }
+    }
+    #[test]
+    fn test_cmp_monomials_by_degree() {
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(
+            vec![1,1,3],
+            vec![2,1,3],
+            vec![2,0,3]));
+        let mut ht = HashTable::new(&exps);
+        for e in exps.into_iter().flatten() {
+            ht.insert(e);
+        }
+        assert_eq!(ht.cmp_monomials_by_degree(0,1), Ordering::Less);
+        assert_eq!(ht.cmp_monomials_by_degree(1,2), Ordering::Greater);
+        assert_eq!(ht.cmp_monomials_by_degree(2,0), Ordering::Equal);
     }
     #[test]
     fn test_cmp_monomials_by_drl() {
