@@ -1,4 +1,5 @@
 mod primitives;
+mod preprocessing;
 mod io;
 mod hash_table;
 mod pairs;
@@ -24,6 +25,10 @@ use crate::pairs::{
     PairSet,
 };
 
+use crate::preprocessing::{
+    Matrix,
+};
+
 fn main() {
     let config = Config::new();
     let (variables, characteristic, coefficients, exponents) = read_file(config);
@@ -36,6 +41,7 @@ fn main() {
         if basis.is_constant() || pairs.is_empty() {
             break;
         }
+        // matrix.
     }
 
 
