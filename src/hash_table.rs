@@ -52,6 +52,24 @@ impl HashTable {
         return seed;
     }
 
+    // We assume all exponents from a are greater or equal than
+    // the corresponding exponents from b. Used to get multiples
+    // during symbolic preprocessing, usually a represents the lcm
+    // of b with some other monommial.
+    pub fn get_difference(
+        &mut self, mon1: HashTableLength, mon2:HashTableLength)
+        -> HashTableLength {
+        let lm_e = &self.monomials[mon1].exponents;
+        let lm_f = &self.monomials[mon2].exponents;
+        debug_assert!(lm_e.into_iter()
+            .zip(lm_f)
+            .all(|(a,b)| *a>=*b));
+        return self.insert(lm_e.into_iter()
+            .zip(lm_f)
+            .map(|(a,b)| *a-*b)
+            .collect());
+    }
+
     pub fn get_lcm(
         &mut self, mon1: HashTableLength, mon2:HashTableLength)
         -> HashTableLength {
@@ -291,6 +309,28 @@ mod tests {
         assert_eq!(ht.divides(ma, mb), true);
         assert_eq!(ht.divides(ma, mc), false);
         assert_eq!(ht.divides(ma, ma), true);
+    }
+    #[test]
+    #[should_panic]
+    fn test_get_difference_panic() {
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(
+            vec![1,1,3],
+            vec![2,1,2]));
+        let mut ht = HashTable::new(&exps);
+        ht.insert(exps[0][0].clone());
+        ht.insert(exps[0][1].clone());
+        let diff = ht.get_difference(1,0);
+    }
+    #[test]
+    fn test_get_difference() {
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(
+            vec![1,1,3],
+            vec![2,1,4]));
+        let mut ht = HashTable::new(&exps);
+        ht.insert(exps[0][0].clone());
+        ht.insert(exps[0][1].clone());
+        let diff = ht.get_difference(1,0);
+        assert_eq!(ht.monomials[diff].exponents, [1,0,1]);
     }
     #[test]
     fn test_get_lcm() {
