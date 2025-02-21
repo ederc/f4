@@ -319,7 +319,7 @@ mod tests {
         let mut ht = HashTable::new(&exps);
         ht.insert(exps[0][0].clone());
         ht.insert(exps[0][1].clone());
-        let diff = ht.get_difference(1,0);
+        let _diff = ht.get_difference(1,0);
     }
     #[test]
     fn test_get_difference() {
