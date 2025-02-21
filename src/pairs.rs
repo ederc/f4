@@ -125,7 +125,7 @@ impl PairSet {
         }
     }
 
-    fn select_pairs_by_minimal_degree(
+    pub fn select_pairs_by_minimal_degree(
         &mut self,
         basis: &Basis,
         hash_table: &HashTable,
