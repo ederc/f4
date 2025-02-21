@@ -17,8 +17,8 @@ enum Criterion {
 
 #[derive(PartialEq, Debug)]
 pub struct Pair {
-    lcm: HashTableLength,
-    generators: (BasisLength, BasisLength),
+    pub lcm: HashTableLength,
+    pub generators: (BasisLength, BasisLength),
     criterion: Criterion,
 }
 
@@ -127,7 +127,6 @@ impl PairSet {
 
     pub fn select_pairs_by_minimal_degree(
         &mut self,
-        basis: &Basis,
         hash_table: &HashTable,
     ) -> PairVec {
 
@@ -181,7 +180,7 @@ mod tests {
 
         let mut pairs = PairSet::new();
         pairs.update(&basis, &mut hash_table);
-        let min_degree_pairs = pairs.select_pairs_by_minimal_degree(&basis, &hash_table);
+        let min_degree_pairs = pairs.select_pairs_by_minimal_degree(&hash_table);
 
         assert_eq!(min_degree_pairs.len(), 1);
         assert_eq!(min_degree_pairs[0], Pair { lcm: 0, generators: (3, 0), criterion: Criterion::Keep } );
