@@ -43,6 +43,9 @@ impl Matrix {
         let mut gens = HashSet::new();
         while start < next_pairs.len()  {
             let lcm = next_pairs[start].lcm;
+            // set index of lcm as done since we have at least a second generator
+            // which plays the role as reducer of this monomial
+            hash_table.indices[lcm] = true;
             let stop = next_pairs[start..]
                 .iter()
                 .position(|p| p.lcm != lcm)
@@ -70,6 +73,37 @@ impl Matrix {
             start = stop;
             gens.clear();
         }
+    }
+
+    fn add_row(&mut self, divisor_idx: BasisLength, mult_idx: HashTableLength,
+        basis: &Basis, hash_table: &mut HashTable) {
+
+        let vec_len = hash_table.nr_variables;
+        let mons = &basis.elements[divisor_idx].monomials;
+        let mut mult_mons: MonomVec = vec!(0; mons.len());
+        for (idx, m) in mons.iter().enumerate() {
+            let mut exps: ExpVec = vec!(0; vec_len);
+            for i in 0..vec_len {
+                exps[i] = hash_table.monomials[mult_idx].exponents[i]
+                    + hash_table.monomials[*m].exponents[i];
+            }
+            mult_mons[idx] = hash_table.insert(exps);
+        }
+        self.rows.push(Row { basis_index : divisor_idx, columns : mult_mons} );
+    }
+
+    pub fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
+
+        for row in self.rows {
+            for m in row.columns {
+                match hash_table.find_divisor(m, basis) {
+                    Some((divisor_idx, multiplier)) =>
+                        self.add_row(divisor_idx, multiplier, basis, hash_table),
+                    None => continue,
+                }
+            }
+        }
+
     }
 }
 
