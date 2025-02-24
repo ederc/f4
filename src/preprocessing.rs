@@ -1,4 +1,7 @@
 use std::collections::HashSet;
+use std::cmp:: {
+    Ordering,
+};
 
 use crate::primitives::*;
 
@@ -57,18 +60,9 @@ impl Matrix {
             }
             let vec_len = hash_table.nr_variables;
             for g in &gens {
-                let mons = &basis.elements[*g].monomials;
-                let mult_idx = hash_table.get_difference(lcm, mons[0]);
-                let mut mult_mons: MonomVec = vec!(0; mons.len());
-                for (idx, m) in mons.iter().enumerate() {
-                    let mut exps: ExpVec = vec!(0; vec_len);
-                    for i in 0..vec_len {
-                        exps[i] = hash_table.monomials[mult_idx].exponents[i]
-                            + hash_table.monomials[*m].exponents[i];
-                    }
-                    mult_mons[idx] = hash_table.insert(exps);
-                }
-                self.rows.push(Row { basis_index : *g, columns : mult_mons} );
+                let mult_idx = hash_table.get_difference(
+                    lcm, basis.elements[*g].monomials[0]);
+                self.add_row(*g, mult_idx, basis, hash_table);
             }
             start = stop;
             gens.clear();
@@ -92,19 +86,19 @@ impl Matrix {
         self.rows.push(Row { basis_index : divisor_idx, columns : mult_mons} );
     }
 
-    pub fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
-
-        for row in self.rows {
-            for m in row.columns {
-                match hash_table.find_divisor(m, basis) {
-                    Some((divisor_idx, multiplier)) =>
-                        self.add_row(divisor_idx, multiplier, basis, hash_table),
-                    None => continue,
-                }
-            }
-        }
-
-    }
+    // pub fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
+    //
+    //     for row in self.rows {
+    //         for m in row.columns {
+    //             match hash_table.find_divisor(m, basis) {
+    //                 Some((divisor_idx, multiplier)) =>
+    //                     self.add_row(divisor_idx, multiplier, basis, hash_table),
+    //                 None => continue,
+    //             }
+    //         }
+    //     }
+    //
+    // }
 }
 
 #[cfg(test)]
@@ -112,9 +106,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_add_row() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
+                    vec![1, -1], vec![1, 1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
+            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+            vec![vec![0,0,1], vec![0,0,0]]];
+        let mut hash_table = HashTable::new(&exps);
+        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+        let mult: ExpVec = vec![0,3,0];
+        let mult_idx = hash_table.insert(mult);
+
+        let mut matrix = Matrix::new();
+
+        matrix.add_row(0, mult_idx, &basis, &mut hash_table);
+        assert_eq!(matrix.rows[0].basis_index, 0);
+        assert_eq!(matrix.rows[0].columns, [0,7]);
+    }
+
+    #[test]
     fn test_get_next_bunch_of_pairs() {
         let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
+                    vec![1, -1], vec![1, 1]];
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
             vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
             vec![vec![0,0,1], vec![0,0,0]]];
@@ -127,6 +142,12 @@ mod tests {
         let mut matrix = Matrix::new();
 
         matrix.get_next_bunch_of_pairs(&basis, &mut pairs, &mut hash_table);
+
+        // to ensure an ordering on the rows for a
+        // deterministic test we need to sort them
+        matrix.rows.sort_by(|a,b|
+            if a.basis_index < b.basis_index { Ordering::Greater }
+            else { Ordering::Less } );
 
         assert_eq!(matrix.rows.len(), 2);
         assert_eq!(matrix.rows[0].basis_index, 3);
