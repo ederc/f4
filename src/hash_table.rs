@@ -20,7 +20,7 @@ pub struct HashTable {
     values           : Vec<HashValue>,
     map              : Vec<HashTableLength>,
     divisor_bounds   : ExpVec,
-    indices          : Vec<HashValue>,
+    pub indices      : Vec<bool>,
     pub nr_variables : usize,
 }
 
@@ -36,7 +36,7 @@ impl HashTable {
             values         : vec![0; INITIAL_HASH_TABLE_SIZE],
             map            : vec![usize::MAX; INITIAL_HASH_TABLE_SIZE],
             divisor_bounds : Vec::new(),
-            indices        : vec![0; INITIAL_HASH_TABLE_SIZE],
+            indices        : vec![false; INITIAL_HASH_TABLE_SIZE],
             nr_variables   : initial_exponents[0][0].len(),
         };
         ht.generate_random_seed(ht.nr_variables);
