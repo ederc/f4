@@ -16,19 +16,17 @@ use crate::basis::{
 
 struct Row {
     basis_index: BasisLength,
-    columns: HashTableLength,
+    columns: MonomVec,
 }
 
 pub struct Matrix {
-    known: Vec<Row>,
-    unknown: Vec<Row>,
+    rows: Vec<Row>,
 }
 
 impl Matrix {
     pub fn new() -> Matrix {
         let mat = Matrix {
-            known : Vec::new(),
-            unknown : Vec::new(),
+            rows : Vec::new(),
         };
 
         return mat;
@@ -54,17 +52,52 @@ impl Matrix {
                 gens.insert(next_pairs[i].generators.0);
                 gens.insert(next_pairs[i].generators.1);
             }
+            let vec_len = hash_table.nr_variables;
             for g in &gens {
                 let mons = &basis.elements[*g].monomials;
-                let multiplier = hash_table.get_difference(lcm, mons[0]);
-                for m in mons.iter() {
-
-                // known.appened(Row { });
+                let mult_idx = hash_table.get_difference(lcm, mons[0]);
+                let mut mult_mons: MonomVec = vec!(0; mons.len());
+                for (idx, m) in mons.iter().enumerate() {
+                    let mut exps: ExpVec = vec!(0; vec_len);
+                    for i in 0..vec_len {
+                        exps[i] = hash_table.monomials[mult_idx].exponents[i]
+                            + hash_table.monomials[*m].exponents[i];
+                    }
+                    mult_mons[idx] = hash_table.insert(exps);
                 }
+                self.rows.push(Row { basis_index : *g, columns : mult_mons} );
             }
             start = stop;
             gens.clear();
         }
+    }
+}
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_next_bunch_of_pairs() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
+            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+            vec![vec![0,0,1], vec![0,0,0]]];
+        let mut hash_table = HashTable::new(&exps);
+        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+
+        let mut pairs = PairSet::new();
+        pairs.update(&basis, &mut hash_table);
+
+        let mut matrix = Matrix::new();
+
+        matrix.get_next_bunch_of_pairs(&basis, &mut pairs, &mut hash_table);
+
+        assert_eq!(matrix.rows.len(), 2);
+        assert_eq!(matrix.rows[0].basis_index, 3);
+        assert_eq!(matrix.rows[0].columns, [0,1]);
+        assert_eq!(matrix.rows[1].basis_index, 0);
+        assert_eq!(matrix.rows[1].columns, [0,11]);
     }
 }

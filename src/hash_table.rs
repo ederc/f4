@@ -15,13 +15,13 @@ pub struct Monomial {
 }
 
 pub struct HashTable {
-    pub monomials : Vec<Monomial>,
-    random_seed   : Vec<HashValue>,
-    values        : Vec<HashValue>,
-    map           : Vec<HashTableLength>,
-    divisor_bounds: ExpVec,
-    indices       : Vec<HashValue>,
-    nr_variables  : usize,
+    pub monomials    : Vec<Monomial>,
+    random_seed      : Vec<HashValue>,
+    values           : Vec<HashValue>,
+    map              : Vec<HashTableLength>,
+    divisor_bounds   : ExpVec,
+    indices          : Vec<HashValue>,
+    pub nr_variables : usize,
 }
 
 
@@ -350,6 +350,8 @@ mod tests {
             vec![2,0,3],
             vec![2,1,0]));
         let mut ht = HashTable::new(&exps);
+        let te : Vec<_> = exps[0][0].iter().zip(exps[0][1].clone()).map(|(a,b)| a+b).collect();
+        println!("{:?}", te);
         let m1 = ht.insert(exps[0][0].clone());
         let m2 = ht.insert(exps[0][1].clone());
         let m3 = ht.insert(exps[0][1].clone());
