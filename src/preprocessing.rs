@@ -58,7 +58,6 @@ impl Matrix {
                 gens.insert(next_pairs[i].generators.0);
                 gens.insert(next_pairs[i].generators.1);
             }
-            let vec_len = hash_table.nr_variables;
             for g in &gens {
                 let mult_idx = hash_table.get_difference(
                     lcm, basis.elements[*g].monomials[0]);
@@ -86,18 +85,19 @@ impl Matrix {
         self.rows.push(Row { basis_index : divisor_idx, columns : mult_mons} );
     }
 
-    // pub fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
+    // fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
     //
-    //     for row in self.rows {
-    //         for m in row.columns {
+    //     let mut i = 0;
+    //     while i < self.rows.len() {
+    //         for m in self.rows[i].columns {
     //             match hash_table.find_divisor(m, basis) {
     //                 Some((divisor_idx, multiplier)) =>
     //                     self.add_row(divisor_idx, multiplier, basis, hash_table),
     //                 None => continue,
     //             }
     //         }
+    //         i += 1;
     //     }
-    //
     // }
 }
 

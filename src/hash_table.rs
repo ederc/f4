@@ -1,9 +1,15 @@
-use crate::primitives::*;
 use std::cmp:: {
     Ordering,
     min,
     max,
 };
+
+use crate::primitives::*;
+
+use crate::basis::{
+    Basis,
+};
+
 // 2^17
 const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 
@@ -149,6 +155,19 @@ impl HashTable {
         }
     }
 
+    pub fn find_divisor(&mut self, mon: HashTableLength, basis: &Basis)
+        -> Option<(HashTableLength, HashTableLength)> {
+
+        let start_idx = self.monomials[mon].last_known_divisor;
+        for (bi, be) in basis.elements[start_idx..].iter().enumerate() {
+            if self.divides(be.monomials[0], mon) && !be.is_redundant {
+                self.monomials[mon].last_known_divisor = bi;
+                return Some((bi, self.get_difference(mon, be.monomials[0])));
+            }
+        }
+        return None;
+    }
+
     fn get_hash(&self, exp: &ExpVec) -> HashValue {
         let mut h: HashValue = 0;
         for i in 0..exp.len() {
@@ -280,6 +299,19 @@ mod tests {
         assert_eq!(pos, 0);
     }
     #[test]
+    fn test_find_divisor() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3], vec![1,1]], vec![vec![0,2], vec![1,1]]];
+        let mut hash_table = HashTable::new(&exps);
+        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+        let mon1 = hash_table.insert(vec![0 as Exponent,4]);
+        assert_eq!(hash_table.find_divisor(mon1, &basis), Some((1, 4)));
+        assert_eq!(hash_table.monomials[4].exponents, [0,1]);
+        let mon2 = hash_table.insert(vec![5 as Exponent,0]);
+        assert_eq!(hash_table.find_divisor(mon2, &basis), None);
+    }
+    #[test]
     fn test_generate_divisor_bounds() {
         let exps: Vec<Vec<ExpVec>> = vec!(vec!(
             vec![1,1,3],
@@ -351,7 +383,6 @@ mod tests {
             vec![2,1,0]));
         let mut ht = HashTable::new(&exps);
         let te : Vec<_> = exps[0][0].iter().zip(exps[0][1].clone()).map(|(a,b)| a+b).collect();
-        println!("{:?}", te);
         let m1 = ht.insert(exps[0][0].clone());
         let m2 = ht.insert(exps[0][1].clone());
         let m3 = ht.insert(exps[0][1].clone());
