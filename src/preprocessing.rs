@@ -85,20 +85,20 @@ impl Matrix {
         self.rows.push(Row { basis_index : divisor_idx, columns : mult_mons} );
     }
 
-    // fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
-    //
-    //     let mut i = 0;
-    //     while i < self.rows.len() {
-    //         for m in self.rows[i].columns {
-    //             match hash_table.find_divisor(m, basis) {
-    //                 Some((divisor_idx, multiplier)) =>
-    //                     self.add_row(divisor_idx, multiplier, basis, hash_table),
-    //                 None => continue,
-    //             }
-    //         }
-    //         i += 1;
-    //     }
-    // }
+    fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
+
+        let mut i = 0;
+        while i < self.rows.len() {
+            for j in 0..self.rows[i].columns.len() {
+                match hash_table.find_divisor(self.rows[i].columns[j], basis) {
+                    Some((divisor_idx, multiplier)) =>
+                        self.add_row(divisor_idx, multiplier, basis, hash_table),
+                    None => continue,
+                }
+            }
+            i += 1;
+        }
+    }
 }
 
 #[cfg(test)]
