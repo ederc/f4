@@ -382,7 +382,7 @@ mod tests {
             vec![2,0,3],
             vec![2,1,0]));
         let mut ht = HashTable::new(&exps);
-        let te : Vec<_> = exps[0][0].iter().zip(exps[0][1].clone()).map(|(a,b)| a+b).collect();
+        // let te : Vec<_> = exps[0][0].iter().zip(exps[0][1].clone()).map(|(a,b)| a+b).collect();
         let m1 = ht.insert(exps[0][0].clone());
         let m2 = ht.insert(exps[0][1].clone());
         let m3 = ht.insert(exps[0][1].clone());
