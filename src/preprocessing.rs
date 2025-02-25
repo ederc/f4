@@ -109,6 +109,35 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_get_reducers() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
+                    vec![1, -1], vec![1, 1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
+            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+            vec![vec![0,0,1], vec![0,0,0]]];
+        let mut hash_table = HashTable::new(&exps);
+        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+        let mult: ExpVec = vec![1,1,0];
+        let mult_idx = hash_table.insert(mult);
+
+        let mut matrix = Matrix::new();
+
+        matrix.add_row(0, mult_idx, &basis, &mut hash_table);
+        matrix.get_reducers(&basis, &mut hash_table);
+
+        assert_eq!(matrix.rows.len(), 3);
+        assert_eq!(matrix.rows[0].basis_index, 0);
+        assert_eq!(hash_table.monomials[matrix.rows[0].columns[0]].exponents, [1,1,1]);
+        assert_eq!(hash_table.monomials[matrix.rows[0].columns[1]].exponents, [1,1,0]);
+        assert_eq!(matrix.rows[1].basis_index, 0);
+        assert_eq!(hash_table.monomials[matrix.rows[1].columns[0]].exponents, [1,1,1]);
+        assert_eq!(hash_table.monomials[matrix.rows[1].columns[1]].exponents, [1,1,0]);
+        assert_eq!(matrix.rows[2].basis_index, 2);
+        assert_eq!(hash_table.monomials[matrix.rows[2].columns[0]].exponents, [1,1,0]);
+        assert_eq!(hash_table.monomials[matrix.rows[2].columns[1]].exponents, [0,2,0]);
+    }
+    #[test]
     fn test_add_row() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
