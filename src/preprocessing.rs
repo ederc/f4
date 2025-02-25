@@ -90,10 +90,13 @@ impl Matrix {
         let mut i = 0;
         while i < self.rows.len() {
             for j in 0..self.rows[i].columns.len() {
-                match hash_table.find_divisor(self.rows[i].columns[j], basis) {
-                    Some((divisor_idx, multiplier)) =>
-                        self.add_row(divisor_idx, multiplier, basis, hash_table),
-                    None => continue,
+                if !hash_table.indices[self.rows[i].columns[j]] {
+                    hash_table.indices[self.rows[i].columns[j]] = true;
+                    match hash_table.find_divisor(self.rows[i].columns[j], basis) {
+                        Some((divisor_idx, multiplier)) =>
+                            self.add_row(divisor_idx, multiplier, basis, hash_table),
+                        None => continue,
+                    }
                 }
             }
             i += 1;
