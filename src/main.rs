@@ -6,8 +6,6 @@ mod pairs;
 mod arithmetic;
 mod basis;
 
-use crate::primitives::*;
-
 use crate::io::{
     read_file,
     Config,
