@@ -102,6 +102,11 @@ impl Matrix {
             i += 1;
         }
     }
+
+    fn sort_rows_by_drl(&mut self, hash_table: &HashTable) {
+        self.rows.sort_by(|a,b|
+            hash_table.cmp_monomials_by_drl(a.columns[0], b.columns[0]));
+    }
 }
 
 #[cfg(test)]
