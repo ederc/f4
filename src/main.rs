@@ -39,7 +39,8 @@ fn main() {
         if basis.is_constant() || pairs.is_empty() {
             break;
         }
-        // matrix.
+        let mut matrix = Matrix::new();
+        matrix.preprocessing(&basis, &mut pairs, &mut hash_table);
     }
 
 
