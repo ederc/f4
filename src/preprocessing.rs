@@ -35,7 +35,7 @@ impl Matrix {
         return mat;
     }
 
-    pub fn get_next_bunch_of_pairs(&mut self, basis: &Basis, pairs: &mut PairSet,
+    fn get_next_bunch_of_pairs(&mut self, basis: &Basis, pairs: &mut PairSet,
         hash_table: &mut HashTable) {
 
         let mut next_pairs = pairs.select_pairs_by_minimal_degree(hash_table);
@@ -106,6 +106,14 @@ impl Matrix {
     fn sort_rows_by_drl(&mut self, hash_table: &HashTable) {
         self.rows.sort_by(|a,b|
             hash_table.cmp_monomials_by_drl(a.columns[0], b.columns[0]));
+    }
+
+    pub fn preprocessing(&mut self, basis: &Basis,
+        pairs: &mut PairSet, hash_table: &mut HashTable) {
+
+        self.get_next_bunch_of_pairs(basis, pairs, hash_table);
+        self.get_reducers(basis, hash_table);
+        self.sort_rows_by_drl(hash_table);
     }
 }
 
