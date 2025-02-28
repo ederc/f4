@@ -1,7 +1,4 @@
 use std::collections::HashSet;
-use std::cmp:: {
-    Ordering,
-};
 
 use crate::primitives::*;
 
@@ -25,17 +22,17 @@ struct Row {
 pub struct Matrix {
     pivots: Vec<Row>,
     todo: Vec<Row>,
-    lm_columns: Vec<HashTableLength>,
-    non_lm_columns: Vec<HashTableLength>,
+    columns: Vec<HashTableLength>,
+    nr_known_pivots: usize,
 }
 
 impl Matrix {
     pub fn new() -> Matrix {
         let mat = Matrix {
-            pivots        : Vec::new(),
-            todo          : Vec::new(),
-            lm_columns    : Vec::new(),
-            non_lm_columns: Vec::new(),
+            pivots  : Vec::new(),
+            todo    : Vec::new(),
+            columns : Vec::new(),
+            nr_known_pivots: 0,
         };
 
         return mat;
@@ -56,7 +53,7 @@ impl Matrix {
             // set index of lcm as done since we have at least a second generator
             // which plays the role as reducer of this monomial
             hash_table.indices[lcm] = 1;
-            self.lm_columns.push(lcm);
+            self.columns.push(lcm);
             let stop = next_pairs[start..]
                 .iter()
                 .position(|p| p.lcm != lcm)
@@ -70,7 +67,8 @@ impl Matrix {
             debug_assert!(gens.len() > 0);
             let mult_idx = hash_table.get_difference(
                 lcm, basis.elements[first_generator].monomials[0]);
-            self.add_pivot(lcm, first_generator, mult_idx, basis, hash_table);
+            self.columns.push(lcm);
+            self.add_pivot(first_generator, mult_idx, basis, hash_table);
 
             for g in &gens {
                 let mult_idx = hash_table.get_difference(
@@ -82,7 +80,7 @@ impl Matrix {
         }
     }
 
-    fn add_pivot(&mut self, mon: HashTableLength,
+    fn add_pivot(&mut self,
         divisor_idx: BasisLength, mult_idx: HashTableLength,
         basis: &Basis, hash_table: &mut HashTable) {
 
@@ -90,7 +88,6 @@ impl Matrix {
             divisor_idx, mult_idx, basis);
         self.pivots.push(
             Row { basis_index : divisor_idx, columns : mult_mons} );
-        self.lm_columns.push(mon);
     }
 
     fn add_todo(&mut self,
@@ -110,10 +107,10 @@ impl Matrix {
             for j in 0..self.todo[i].columns.len() {
                 if hash_table.indices[self.todo[i].columns[j]] == 0 {
                     hash_table.indices[self.todo[i].columns[j]] = 1;
+                    self.columns.push(self.todo[i].columns[j]);
                     match hash_table.find_divisor(self.todo[i].columns[j], basis) {
                         Some((divisor_idx, multiplier)) =>
-                            self.add_pivot(self.todo[i].columns[j],
-                                divisor_idx, multiplier, basis, hash_table),
+                            self.add_pivot(divisor_idx, multiplier, basis, hash_table),
                         None => continue,
                     }
                 }
@@ -125,10 +122,10 @@ impl Matrix {
             for j in 0..self.pivots[i].columns.len() {
                 if hash_table.indices[self.pivots[i].columns[j]] == 0 {
                     hash_table.indices[self.pivots[i].columns[j]] = 1;
+                    self.columns.push(self.pivots[i].columns[j]);
                     match hash_table.find_divisor(self.pivots[i].columns[j], basis) {
                         Some((divisor_idx, multiplier)) =>
-                            self.add_pivot(self.pivots[i].columns[j],
-                                divisor_idx, multiplier, basis, hash_table),
+                            self.add_pivot(divisor_idx, multiplier, basis, hash_table),
                         None => continue,
                     }
                 }
@@ -139,14 +136,11 @@ impl Matrix {
 
     fn convert_hashes_to_columns(&mut self, hash_table: &mut HashTable) {
 
+        self.nr_known_pivots = self.columns.len();
         // set colum index for corresponding monomial hash in hash table
-        self.non_lm_columns.sort_by(|a,b| hash_table.cmp_monomials_by_drl(*a, *b));
-        for i in 0..self.non_lm_columns.len() {
-            hash_table.indices[self.non_lm_columns[i]] = i;
-        }
-        self.lm_columns.sort_by(|a,b| hash_table.cmp_monomials_by_drl(*a, *b));
-        for i in 0..self.lm_columns.len() {
-            hash_table.indices[self.lm_columns[i]] = i;
+        self.columns.sort_by(|a,b| hash_table.cmp_monomials_by_drl(*b, *a));
+        for i in 0..self.columns.len() {
+            hash_table.indices[self.columns[i]] = i;
         }
         // map hashes to columns in matrix
         for i in 0..self.todo.len() {
@@ -162,11 +156,8 @@ impl Matrix {
             }
         }
         // reset indices
-        for i in 0..self.non_lm_columns.len() {
-            hash_table.indices[self.non_lm_columns[i]] = 0;
-        }
-        for i in 0..self.lm_columns.len() {
-            hash_table.indices[self.lm_columns[i]] = 0;
+        for i in 0..self.columns.len() {
+            hash_table.indices[self.columns[i]] = 0;
         }
     }
 
@@ -185,6 +176,35 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_convert_hashes_to_columns() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
+                    vec![1, -1], vec![1, 1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
+            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+            vec![vec![0,0,1], vec![0,0,0]]];
+        let mut hash_table = HashTable::new(&exps);
+        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+        let mult: ExpVec = vec![1,1,0];
+        let mult_idx = hash_table.insert(mult);
+
+        let mut matrix = Matrix::new();
+
+        matrix.add_todo(0, mult_idx, &basis, &mut hash_table);
+        matrix.get_reducers(&basis, &mut hash_table);
+        matrix.convert_hashes_to_columns(&mut hash_table);
+
+        assert_eq!(matrix.columns.len(), 3);
+        assert_eq!(matrix.todo.len(), 1);
+        assert_eq!(matrix.todo[0].columns[0], 0);
+        assert_eq!(matrix.todo[0].columns[1], 1);
+        assert_eq!(matrix.pivots.len(), 2);
+        assert_eq!(matrix.pivots[0].columns[0], 0);
+        assert_eq!(matrix.pivots[0].columns[1], 1);
+        assert_eq!(matrix.pivots[1].columns[0], 1);
+        assert_eq!(matrix.pivots[1].columns[1], 2);
+    }
+
     fn test_get_reducers() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
@@ -246,12 +266,10 @@ mod tests {
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![0,3,0];
         let mult_idx = hash_table.insert(mult);
-        let mon: ExpVec = vec![0,3,1];
-        let mon_idx = hash_table.insert(mon);
 
         let mut matrix = Matrix::new();
 
-        matrix.add_pivot(mon_idx, 0, mult_idx, &basis, &mut hash_table);
+        matrix.add_pivot(0, mult_idx, &basis, &mut hash_table);
         assert_eq!(matrix.pivots[0].basis_index, 0);
         assert_eq!(matrix.pivots[0].columns, [0,7]);
     }
