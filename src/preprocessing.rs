@@ -136,7 +136,7 @@ impl Matrix {
 
     fn convert_hashes_to_columns(&mut self, hash_table: &mut HashTable) {
 
-        self.nr_known_pivots = self.columns.len();
+        self.nr_known_pivots = self.pivots.len();
         // set colum index for corresponding monomial hash in hash table
         self.columns.sort_by(|a,b| hash_table.cmp_monomials_by_drl(*b, *a));
         for i in 0..self.columns.len() {
@@ -203,6 +203,7 @@ mod tests {
         assert_eq!(matrix.pivots[0].columns[1], 1);
         assert_eq!(matrix.pivots[1].columns[0], 1);
         assert_eq!(matrix.pivots[1].columns[1], 2);
+        assert_eq!(matrix.nr_known_pivots, 2);
     }
 
     fn test_get_reducers() {
