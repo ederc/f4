@@ -26,7 +26,7 @@ pub struct HashTable {
     values           : Vec<HashValue>,
     map              : Vec<HashTableLength>,
     divisor_bounds   : ExpVec,
-    pub indices      : Vec<bool>,
+    pub indices      : Vec<HashTableLength>,
     pub nr_variables : usize,
 }
 
@@ -42,7 +42,7 @@ impl HashTable {
             values         : vec![0; INITIAL_HASH_TABLE_SIZE],
             map            : vec![usize::MAX; INITIAL_HASH_TABLE_SIZE],
             divisor_bounds : Vec::new(),
-            indices        : vec![false; INITIAL_HASH_TABLE_SIZE],
+            indices        : vec![0; INITIAL_HASH_TABLE_SIZE],
             nr_variables   : initial_exponents[0][0].len(),
         };
         ht.generate_random_seed(ht.nr_variables);
@@ -162,10 +162,28 @@ impl HashTable {
         for (bi, be) in basis.elements[start_idx..].iter().enumerate() {
             if self.divides(be.monomials[0], mon) && !be.is_redundant {
                 self.monomials[mon].last_known_divisor = bi;
+                self.indices[mon] = 2;
                 return Some((bi, self.get_difference(mon, be.monomials[0])));
             }
         }
         return None;
+    }
+
+    pub fn generate_multiplied_monomials(&mut self, divisor_idx: BasisLength,
+        mult_idx: HashTableLength, basis: &Basis) -> MonomVec {
+
+        let vec_len = self.nr_variables;
+        let mons = &basis.elements[divisor_idx].monomials;
+        let mut mult_mons: MonomVec = vec!(0; mons.len());
+        for (idx, m) in mons.iter().enumerate() {
+            let mut exps: ExpVec = vec!(0; vec_len);
+            for i in 0..vec_len {
+                exps[i] = self.monomials[mult_idx].exponents[i]
+                    + self.monomials[*m].exponents[i];
+            }
+            mult_mons[idx] = self.insert(exps);
+        }
+        return mult_mons;
     }
 
     fn get_hash(&self, exp: &ExpVec) -> HashValue {
