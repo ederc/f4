@@ -185,8 +185,10 @@ impl Matrix {
 
         for i in 0..self.todo.len() {
             dense_row.iter_mut().for_each(|a| *a = 0);
-            for j in 0..self.todo[i].columns.len() {
-                dense_row[j] = self.todo[i].columns[j] as DenseRowCoefficient;
+            let cfs = &basis.elements[self.todo[i].basis_index].coefficients;
+            debug_assert!(cfs.len() == self.todo[i].columns.len());
+            for (i,c) in self.todo[i].columns.iter().enumerate() {
+                dense_row[*c] = cfs[i] as DenseRowCoefficient;
             }
         }
     }
