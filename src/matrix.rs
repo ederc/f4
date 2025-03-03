@@ -186,7 +186,7 @@ impl Matrix {
         for i in 0..self.todo.len() {
             dense_row.iter_mut().for_each(|a| *a = 0);
             for j in 0..self.todo[i].columns.len() {
-                dense_row[j] = self.todo[i].columns[j];
+                dense_row[j] = self.todo[i].columns[j] as DenseRowCoefficient;
             }
         }
     }

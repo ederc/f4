@@ -18,4 +18,5 @@ pub type Degree = u32;
 pub type BasisLength = usize;
 
 // Matrix stuff
-pub type DenseRow = Vec<i64>;
+pub type DenseRowCoefficient = i64;
+pub type DenseRow = Vec<DenseRowCoefficient>;
