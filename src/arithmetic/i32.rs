@@ -1,7 +1,7 @@
 use is_prime::is_prime;
 
 // Calculates (n^x) % p
-fn modular_exponent(mut n:i32 ,mut x:i32 , p:i32) -> i32{
+fn modular_exponent(mut n:i32 ,mut x:i32 , p:i32) -> i32 {
     let mut ans = 1;
     if x <= 0 {
         return 1;
@@ -21,7 +21,7 @@ fn modular_exponent(mut n:i32 ,mut x:i32 , p:i32) -> i32{
     }
 }
 
-fn modular_inverse(n:i32, p:i32) -> i32{
+fn modular_inverse(n:i32, p:i32) -> i32 {
     debug_assert!(is_prime(&p.to_string()));
 
     // Return Modular Multiplicative Inverse, that is (n^(p-2)) mod p

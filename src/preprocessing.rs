@@ -161,6 +161,14 @@ impl Matrix {
         }
     }
 
+    fn link_pivots_to_columns(&mut self) {
+        self.columns.iter_mut().for_each(|a| *a = HashTableLength::MAX);
+
+        for i in 0..self.pivots.len() {
+            self.columns[self.pivots[i].columns[0]] = i;
+        }
+    }
+
     pub fn preprocessing(&mut self, basis: &Basis,
         pairs: &mut PairSet, hash_table: &mut HashTable) {
 
@@ -168,6 +176,7 @@ impl Matrix {
         self.get_reducers(basis, hash_table);
         self.convert_hashes_to_columns(hash_table);
         self.pivots.sort_by(|a,b| b.columns[0].cmp(&a.columns[0]));
+        self.link_pivots_to_columns();
     }
 }
 
