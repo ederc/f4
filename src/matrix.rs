@@ -178,6 +178,18 @@ impl Matrix {
         self.pivots.sort_by(|a,b| b.columns[0].cmp(&a.columns[0]));
         self.link_pivots_to_columns();
     }
+
+    pub fn reduce(&mut self, basis: &Basis, hash_table: &HashTable) {
+
+        let mut dense_row: DenseRow = vec!(0; self.columns.len());
+
+        for i in 0..self.todo.len() {
+            dense_row.iter_mut().for_each(|a| *a = 0);
+            for j in 0..self.todo[i].columns.len() {
+                dense_row[j] = self.todo[i].columns[j];
+            }
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 mod primitives;
-mod preprocessing;
+mod matrix;
 mod io;
 mod hash_table;
 mod pairs;
@@ -23,7 +23,7 @@ use crate::pairs::{
     PairSet,
 };
 
-use crate::preprocessing::{
+use crate::matrix::{
     Matrix,
 };
 
@@ -41,6 +41,7 @@ fn main() {
         }
         let mut matrix = Matrix::new();
         matrix.preprocessing(&basis, &mut pairs, &mut hash_table);
+        matrix.reduce(&basis, &hash_table);
     }
 
 
