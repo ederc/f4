@@ -41,7 +41,7 @@ fn main() {
         }
         let mut matrix = Matrix::new();
         matrix.preprocessing(&basis, &mut pairs, &mut hash_table);
-        matrix.reduce(&basis, &hash_table);
+        matrix.reduce(&mut basis);
     }
 
 
