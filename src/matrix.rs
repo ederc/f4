@@ -12,6 +12,7 @@ use crate::hash_table::{
 
 use crate::basis::{
     Basis,
+    Element,
 };
 
 struct Row {
