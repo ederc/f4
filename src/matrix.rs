@@ -228,7 +228,7 @@ mod tests {
         assert_eq!(matrix.pivots[1].columns[1], 2);
         assert_eq!(matrix.nr_known_pivots, 2);
     }
-
+    #[test]
     fn test_get_reducers() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
