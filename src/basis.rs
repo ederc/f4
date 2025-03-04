@@ -16,7 +16,7 @@ pub struct Element {
 }
 
 pub struct Basis {
-    characteristic: Characteristic,
+    pub characteristic: Characteristic,
     pub previous_length: BasisLength,
     is_constant: bool,
     maximum_total_degree: Degree,
