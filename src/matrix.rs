@@ -1,5 +1,9 @@
 use std::collections::HashSet;
 
+use crate::arithmetic::i32::{
+    modular_inverse,
+};
+
 use crate::primitives::*;
 
 use crate::pairs::{
@@ -189,7 +193,7 @@ impl Matrix {
         debug_assert!(cfs.len() == row.columns.len());
 
         let characteristic = basis.characteristic as DenseRowCoefficient;
-        let characteristic_2 = (basis.characteristic as DenseRowCoefficient)^2;
+        let characteristic_2 = characteristic.pow(2);
 
         let start_column = row.columns[0];
         let last_column  = self.columns.len();
@@ -217,38 +221,43 @@ impl Matrix {
                             .iter().zip(reducer_coefficients) {
 
                             dense_row[*col] -= multiplier * *cf as DenseRowCoefficient;
-                            dense_row[*col] += (dense_row[*col] >> 63) & characteristic_2;
+                            if dense_row[*col].is_negative() {
+                                dense_row[*col] += characteristic_2;
+                            }
                         }
                     } else {
-                        if new_pivot_index != 0 {
+                        if new_pivot_index == 0 {
                             new_pivot_index = i;
                         }
                         continue;
                     }
                 }
-
             }
         }
         if new_pivot_index != 0 {
             let mut cols: MonomVec = Vec::new();
             let mut cfs: CoeffVec = Vec::new();
 
+            let lc = dense_row[new_pivot_index] as Coefficient;
+
+            let inv = modular_inverse(lc, basis.characteristic);
+
             for (i, c) in dense_row[new_pivot_index..].iter().enumerate() {
                 if *c != 0 {
-                    cfs.push(*c as Coefficient);
-                    cols.push(i);
+                    cfs.push(((inv as DenseRowCoefficient * *c) % characteristic) as Coefficient);
+                    cols.push(i+new_pivot_index);
                 }
             }
-            basis.elements.push(
-                Element {
-                    coefficients: cfs,
-                    monomials: Vec::new(),
-                    is_redundant: false,});
             self.pivots.push(
                 Row {
                     basis_index: basis.elements.len(),
                     columns: cols,});
             self.columns[new_pivot_index] = self.pivots.len();
+            basis.elements.push(
+                Element {
+                    coefficients: cfs,
+                    monomials: Vec::new(),
+                    is_redundant: false,});
         }
     }
 
@@ -278,13 +287,42 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_reduce_row() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
+        vec![1, -1], vec![1, 1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
+        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+        vec![vec![0,0,1], vec![0,0,0]]];
+        let mut hash_table = HashTable::new(&exps);
+        let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+
+        let mut matrix = Matrix::new();
+
+        let mult: ExpVec = vec![0,0,2];
+        let mult_idx = hash_table.insert(mult);
+
+        let mut matrix = Matrix::new();
+
+        matrix.add_todo(3, mult_idx, &basis, &mut hash_table);
+        matrix.get_reducers(&basis, &mut hash_table);
+        matrix.convert_hashes_to_columns(&mut hash_table);
+        matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
+        matrix.link_pivots_to_columns();
+        matrix.reduce_row(0, &mut basis);
+        assert_eq!(matrix.pivots.len(), 7);
+        assert_eq!(matrix.pivots[6].columns, [4,6,7]);
+        assert_eq!(matrix.pivots[6].basis_index, 4);
+        assert_eq!(basis.elements[matrix.pivots[6].basis_index].coefficients, [1,4,65520]);
+    }
+    #[test]
     fn test_convert_hashes_to_columns() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-                    vec![1, -1], vec![1, 1]];
+        vec![1, -1], vec![1, 1]];
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-            vec![vec![0,0,1], vec![0,0,0]]];
+        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+        vec![vec![0,0,1], vec![0,0,0]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![1,1,0];
@@ -311,10 +349,10 @@ mod tests {
     fn test_get_reducers() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-                    vec![1, -1], vec![1, 1]];
+        vec![1, -1], vec![1, 1]];
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-            vec![vec![0,0,1], vec![0,0,0]]];
+        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+        vec![vec![0,0,1], vec![0,0,0]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![1,1,0];
@@ -341,10 +379,10 @@ mod tests {
     fn test_add_todo() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-                    vec![1, -1], vec![1, 1]];
+        vec![1, -1], vec![1, 1]];
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-            vec![vec![0,0,1], vec![0,0,0]]];
+        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+        vec![vec![0,0,1], vec![0,0,0]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![0,3,0];
@@ -361,10 +399,10 @@ mod tests {
     fn test_add_pivot() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-                    vec![1, -1], vec![1, 1]];
+        vec![1, -1], vec![1, 1]];
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-            vec![vec![0,0,1], vec![0,0,0]]];
+        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+        vec![vec![0,0,1], vec![0,0,0]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![0,3,0];
@@ -381,10 +419,10 @@ mod tests {
     fn test_get_next_bunch_of_pairs() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-                    vec![1, -1], vec![1, 1]];
+        vec![1, -1], vec![1, 1]];
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-            vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-            vec![vec![0,0,1], vec![0,0,0]]];
+        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+        vec![vec![0,0,1], vec![0,0,0]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
