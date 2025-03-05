@@ -273,12 +273,13 @@ impl Matrix {
         // to prepare interreduction process
         self.pivots[nr_known_pivots..].sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
         for (i,r) in self.pivots[nr_known_pivots..].iter().enumerate() {
-            self.columns[r.columns[0]] = i;
+            self.columns[r.columns[0]] = i + nr_known_pivots;
         }
 
         // interreduce newly found pivots
-        let nr_pivots = self.pivots.len();
-
+        for i in nr_known_pivots..self.pivots.len() {
+            self.reduce_row(i, basis);
+        }
     }
 }
 
