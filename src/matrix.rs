@@ -184,6 +184,64 @@ impl Matrix {
         self.link_pivots_to_columns();
     }
 
+    fn apply_reducer(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
+        let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
+        let reducer = &self.pivots[self.columns[col_idx]];
+        let reducer_coefficients =
+            &basis.elements[reducer.basis_index].coefficients;
+        let reducer_columns = &reducer.columns;
+        debug_assert!(
+            reducer_columns.len() == reducer_coefficients.len());
+        let multiplier = dense_row[col_idx];
+
+        // update dense row applying multiplied reducer
+        for (col, cf) in reducer_columns
+            .iter().zip(reducer_coefficients) {
+
+            dense_row[*col] -= multiplier * *cf as DenseRowCoefficient;
+            if dense_row[*col].is_negative() {
+                dense_row[*col] += characteristic_2;
+            }
+        }
+    }
+
+    fn add_new_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
+        let mut cols: MonomVec = Vec::new();
+        let mut cfs: CoeffVec = Vec::new();
+
+        let characteristic = basis.characteristic as DenseRowCoefficient;
+
+        let lc = dense_row[col_idx] as Coefficient;
+
+        if lc != 1 {
+            let inv = modular_inverse(lc, basis.characteristic);
+
+            for (i, c) in dense_row[col_idx..].iter().enumerate() {
+                if *c != 0 {
+                    cfs.push(((inv as DenseRowCoefficient * *c) % characteristic) as Coefficient);
+                    cols.push(i+col_idx);
+                }
+            }
+        } else {
+            for (i, c) in dense_row[col_idx..].iter().enumerate() {
+                if *c != 0 {
+                    cfs.push(*c as Coefficient);
+                    cols.push(i+col_idx);
+                }
+            }
+        }
+        self.pivots.push(
+            Row {
+                basis_index: basis.elements.len(),
+                columns: cols,});
+        self.columns[col_idx] = self.pivots.len();
+        basis.elements.push(
+            Element {
+                coefficients: cfs,
+                monomials: Vec::new(),
+                is_redundant: false,});
+    }
+
     fn reduce_row(&mut self, idx: usize, basis: &mut Basis) {
 
         let row = &self.todo[idx];
@@ -193,7 +251,6 @@ impl Matrix {
         debug_assert!(cfs.len() == row.columns.len());
 
         let characteristic = basis.characteristic as DenseRowCoefficient;
-        let characteristic_2 = characteristic.pow(2);
 
         let start_column = row.columns[0];
         let last_column  = self.columns.len();
@@ -208,23 +265,7 @@ impl Matrix {
                 dense_row[i] %= characteristic;
                 if dense_row[i] != 0 {
                     if self.columns[i] != HashTableLength::MAX {
-                        let reducer = &self.pivots[self.columns[i]];
-                        let reducer_coefficients =
-                            &basis.elements[reducer.basis_index].coefficients;
-                        let reducer_columns = &reducer.columns;
-                        debug_assert!(
-                            reducer_columns.len() == reducer_coefficients.len());
-                        let multiplier = dense_row[i];
-
-                        // update dense row applying multiplied reducer
-                        for (col, cf) in reducer_columns
-                            .iter().zip(reducer_coefficients) {
-
-                            dense_row[*col] -= multiplier * *cf as DenseRowCoefficient;
-                            if dense_row[*col].is_negative() {
-                                dense_row[*col] += characteristic_2;
-                            }
-                        }
+                        self.apply_reducer(&mut dense_row, i, basis);
                     } else {
                         if new_pivot_index == 0 {
                             new_pivot_index = i;
@@ -235,29 +276,7 @@ impl Matrix {
             }
         }
         if new_pivot_index != 0 {
-            let mut cols: MonomVec = Vec::new();
-            let mut cfs: CoeffVec = Vec::new();
-
-            let lc = dense_row[new_pivot_index] as Coefficient;
-
-            let inv = modular_inverse(lc, basis.characteristic);
-
-            for (i, c) in dense_row[new_pivot_index..].iter().enumerate() {
-                if *c != 0 {
-                    cfs.push(((inv as DenseRowCoefficient * *c) % characteristic) as Coefficient);
-                    cols.push(i+new_pivot_index);
-                }
-            }
-            self.pivots.push(
-                Row {
-                    basis_index: basis.elements.len(),
-                    columns: cols,});
-            self.columns[new_pivot_index] = self.pivots.len();
-            basis.elements.push(
-                Element {
-                    coefficients: cfs,
-                    monomials: Vec::new(),
-                    is_redundant: false,});
+            self.add_new_pivot(dense_row, new_pivot_index, basis);
         }
     }
 
