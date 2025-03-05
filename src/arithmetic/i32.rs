@@ -11,7 +11,7 @@ fn modular_exponent(mut n:i32 ,mut x:i32 , p:i32) -> i32 {
             return (ans * n) % p;
         }
         if x & 1 == 0 {
-            n = (n * n) % p;
+            n = ((n as i64 * n as i64) % p as i64) as i32;
             x >>= 1;
             continue;
         } else {
@@ -21,7 +21,7 @@ fn modular_exponent(mut n:i32 ,mut x:i32 , p:i32) -> i32 {
     }
 }
 
-fn modular_inverse(n:i32, p:i32) -> i32 {
+pub fn modular_inverse(n:i32, p:i32) -> i32 {
     debug_assert!(is_prime(&p.to_string()));
 
     // Return Modular Multiplicative Inverse, that is (n^(p-2)) mod p
