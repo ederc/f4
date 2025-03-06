@@ -205,31 +205,21 @@ impl Matrix {
         }
     }
 
+    fn update_interreduced_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
+
+        let (cols, cfs) = generate_sparse_row_from_dense_row(
+            dense_row, col_idx, basis.characteristic as DenseRowCoefficient);
+
+        let pivot_idx = self.columns[col_idx];
+        self.pivots[pivot_idx].columns = cols;
+        basis.elements[self.pivots[pivot_idx].basis_index].coefficients = cfs;
+    }
+
     fn add_new_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
-        let mut cols: MonomVec = Vec::new();
-        let mut cfs: CoeffVec = Vec::new();
 
-        let characteristic = basis.characteristic as DenseRowCoefficient;
+        let (cols, cfs) = generate_sparse_row_from_dense_row(
+            dense_row, col_idx, basis.characteristic as DenseRowCoefficient);
 
-        let lc = dense_row[col_idx] as Coefficient;
-
-        if lc != 1 {
-            let inv = modular_inverse(lc, basis.characteristic);
-
-            for (i, c) in dense_row[col_idx..].iter().enumerate() {
-                if *c != 0 {
-                    cfs.push(((inv as DenseRowCoefficient * *c) % characteristic) as Coefficient);
-                    cols.push(i+col_idx);
-                }
-            }
-        } else {
-            for (i, c) in dense_row[col_idx..].iter().enumerate() {
-                if *c != 0 {
-                    cfs.push(*c as Coefficient);
-                    cols.push(i+col_idx);
-                }
-            }
-        }
         self.pivots.push(
             Row {
                 basis_index: basis.elements.len(),
@@ -280,6 +270,42 @@ impl Matrix {
         }
     }
 
+    fn interreduce_row(&mut self, idx: usize, basis: &mut Basis) {
+
+        let row = &self.pivots[idx];
+        let mut dense_row: DenseRow = vec!(0; self.columns.len());
+
+        let cfs = &basis.elements[row.basis_index].coefficients;
+        debug_assert!(cfs.len() == row.columns.len());
+
+        let characteristic = basis.characteristic as DenseRowCoefficient;
+
+        let start_column = row.columns[0+1];
+        let last_column  = self.columns.len();
+
+        for (i,c) in row.columns.iter().enumerate() {
+            dense_row[*c] = cfs[i] as DenseRowCoefficient;
+        }
+
+        let mut new_pivot_index = 0;
+        for i in start_column..last_column {
+            if dense_row[i] != 0 {
+                dense_row[i] %= characteristic;
+                if dense_row[i] != 0 {
+                    if self.columns[i] != HashTableLength::MAX {
+                        self.apply_reducer(&mut dense_row, i, basis);
+                    } else {
+                        if new_pivot_index == 0 {
+                            new_pivot_index = i;
+                        }
+                        continue;
+                    }
+                }
+            }
+        }
+        self.update_interreduced_pivot(dense_row, new_pivot_index, basis);
+    }
+
     pub fn reduce(&mut self, basis: &mut Basis) {
 
         // find new pivots, reduce todo rows correspondingly
@@ -300,6 +326,35 @@ impl Matrix {
             self.reduce_row(i, basis);
         }
     }
+}
+
+fn generate_sparse_row_from_dense_row(
+    dense_row: DenseRow, col_idx: usize, characteristic: DenseRowCoefficient)
+    -> (MonomVec, CoeffVec) {
+
+    let mut cols: MonomVec = Vec::new();
+    let mut cfs: CoeffVec = Vec::new();
+
+    let lc = dense_row[col_idx] as Coefficient;
+
+    if lc != 1 {
+        let inv = modular_inverse(lc, characteristic as Characteristic);
+
+        for (i, c) in dense_row[col_idx..].iter().enumerate() {
+            if *c != 0 {
+                cfs.push(((inv as DenseRowCoefficient * *c) % characteristic) as Coefficient);
+                cols.push(i+col_idx);
+            }
+        }
+    } else {
+        for (i, c) in dense_row[col_idx..].iter().enumerate() {
+            if *c != 0 {
+                cfs.push(*c as Coefficient);
+                cols.push(i+col_idx);
+            }
+        }
+    }
+    return (cols, cfs);
 }
 
 #[cfg(test)]
