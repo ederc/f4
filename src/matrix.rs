@@ -305,6 +305,9 @@ impl Matrix {
 
     pub fn reduce(&mut self, basis: &mut Basis) {
 
+        // set previous basis length before adding new elements / pivots
+        basis.previous_length = basis.elements.len();
+
         // find new pivots, reduce todo rows correspondingly
         for i in 0..self.todo.len() {
             self.reduce_row(i, basis);
