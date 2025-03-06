@@ -54,7 +54,6 @@ impl PairSet {
         for (i,e) in basis.elements[basis.previous_length..]
         .iter().enumerate() {
             // generate new pairs with basis element e
-            println!("i --> {}", i);
             let mut new_pairs: PairVec = basis.elements[..i+basis.previous_length]
                 .iter().enumerate().map(|(j,f)|
                     Pair {
@@ -92,6 +91,7 @@ impl PairSet {
                 }
             }
 
+            println!("new pairs after sort: {:?}", new_pairs);
             // Gebauer-Möller: remove same lcm pairs from new pairs
             for i in 0..new_pairs.len() {
                 if new_pairs[i].criterion == Criterion::Product {
@@ -101,7 +101,10 @@ impl PairSet {
                         }
                     }
                 } else if new_pairs[i].criterion == Criterion::Keep && i > 0 {
-                    for j in i-1..=0 {
+                    println!("checking pair[{}] {:?}",i, new_pairs[i]);
+                    println!("i-1 = {}", i-1);
+                    for j in (0..i).rev() {
+                        println!("trying with pair[{}] {:?}", j, new_pairs[j]);
                         if new_pairs[j].lcm != new_pairs[i].lcm {
                             break;
                         } else if new_pairs[j].criterion == Criterion::Keep {
