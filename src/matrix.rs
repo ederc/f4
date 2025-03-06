@@ -357,6 +357,38 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_interreduce_row() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
+        vec![1, -1], vec![1, 1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
+        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+        vec![vec![0,0,1], vec![0,0,0]]];
+        let mut hash_table = HashTable::new(&exps);
+        let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+
+        let mut matrix = Matrix::new();
+
+        let mult: ExpVec = vec![0,0,2];
+        let mult_idx = hash_table.insert(mult);
+
+        let mut matrix = Matrix::new();
+
+        matrix.add_todo(3, mult_idx, &basis, &mut hash_table);
+        matrix.get_reducers(&basis, &mut hash_table);
+        matrix.convert_hashes_to_columns(&mut hash_table);
+        matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
+        matrix.link_pivots_to_columns();
+        matrix.reduce_row(0, &mut basis);
+        matrix.interreduce_row(0, &mut basis);
+        assert_eq!(matrix.pivots.len(), 7);
+        assert_eq!(matrix.pivots[0].columns, [0,6,7]);
+        assert_eq!(matrix.pivots[0].basis_index, 0);
+        assert_eq!(
+            basis.elements[matrix.pivots[0].basis_index].coefficients,
+            [1,262068,5]);
+    }
+    #[test]
     fn test_reduce_row() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
