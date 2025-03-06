@@ -55,7 +55,7 @@ impl Matrix {
         next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
         let mut start = 0;
         let mut gens = HashSet::new();
-        // println!("next pairs {:?}", next_pairs);
+        println!("next pairs {:?}", next_pairs);
         while start < next_pairs.len()  {
             let first_generator = next_pairs[start].generators.0;
             let lcm = next_pairs[start].lcm;
@@ -66,8 +66,9 @@ impl Matrix {
             let stop = next_pairs[start..]
                 .iter()
                 .position(|p| p.lcm != lcm)
-                .unwrap_or(next_pairs.len()) + start;
+                .unwrap_or(next_pairs.len()-start) + start;
 
+            println!("start {} --> stop {}", start, stop);
             gens.insert(next_pairs[start].generators.1);
             for i in start+1..stop {
                 gens.insert(next_pairs[i].generators.0);
@@ -84,7 +85,7 @@ impl Matrix {
                     lcm, basis.elements[*g].monomials[0]);
                 self.add_todo(*g, mult_idx, basis, hash_table);
             }
-            start = stop + 1;
+            start = stop;
             gens.clear();
         }
     }
@@ -223,6 +224,7 @@ impl Matrix {
 
     fn add_new_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
 
+        println!("add new piv for col {}", col_idx);
         let (cols, cfs) = generate_sparse_row_from_dense_row(
             dense_row, col_idx, basis.characteristic as DenseRowCoefficient);
 
@@ -312,6 +314,7 @@ impl Matrix {
         // set previous basis length before adding new elements / pivots
         basis.previous_length = basis.elements.len();
 
+        println!("todo len {}", self.todo.len());
         // find new pivots, reduce todo rows correspondingly
         for i in 0..self.todo.len() {
             self.reduce_row(i, basis);
