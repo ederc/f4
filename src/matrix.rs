@@ -28,6 +28,7 @@ pub struct Matrix {
     pivots: Vec<Row>,
     todo: Vec<Row>,
     columns: Vec<HashTableLength>,
+    pivot_lookup: Vec<usize>,
     nr_known_pivots: usize,
 }
 
@@ -37,6 +38,7 @@ impl Matrix {
             pivots  : Vec::new(),
             todo    : Vec::new(),
             columns : Vec::new(),
+            pivot_lookup : Vec::new(),
             nr_known_pivots: 0,
         };
 
@@ -167,10 +169,10 @@ impl Matrix {
     }
 
     fn link_pivots_to_columns(&mut self) {
-        self.columns.iter_mut().for_each(|a| *a = HashTableLength::MAX);
+        self.pivot_lookup = vec!(usize::MAX; self.columns.len());
 
         for i in 0..self.pivots.len() {
-            self.columns[self.pivots[i].columns[0]] = i;
+            self.pivot_lookup[self.pivots[i].columns[0]] = i;
         }
     }
 
@@ -186,7 +188,7 @@ impl Matrix {
 
     fn apply_reducer(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
         let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
-        let reducer = &self.pivots[self.columns[col_idx]];
+        let reducer = &self.pivots[self.pivot_lookup[col_idx]];
         let reducer_coefficients =
             &basis.elements[reducer.basis_index].coefficients;
         let reducer_columns = &reducer.columns;
@@ -210,7 +212,7 @@ impl Matrix {
         let (cols, cfs) = generate_sparse_row_from_dense_row(
             dense_row, col_idx, basis.characteristic as DenseRowCoefficient);
 
-        let pivot_idx = self.columns[col_idx];
+        let pivot_idx = self.pivot_lookup[col_idx];
         self.pivots[pivot_idx].columns = cols;
         basis.elements[self.pivots[pivot_idx].basis_index].coefficients = cfs;
     }
@@ -224,7 +226,7 @@ impl Matrix {
             Row {
                 basis_index: basis.elements.len(),
                 columns: cols,});
-        self.columns[col_idx] = self.pivots.len()-1;
+        self.pivot_lookup[col_idx] = self.pivots.len()-1;
         basis.elements.push(
             Element {
                 coefficients: cfs,
@@ -254,7 +256,7 @@ impl Matrix {
             if dense_row[i] != 0 {
                 dense_row[i] %= characteristic;
                 if dense_row[i] != 0 {
-                    if self.columns[i] != HashTableLength::MAX {
+                    if self.pivot_lookup[i] != usize::MAX {
                         self.apply_reducer(&mut dense_row, i, basis);
                     } else {
                         if new_pivot_index == 0 {
@@ -292,7 +294,7 @@ impl Matrix {
             if dense_row[i] != 0 {
                 dense_row[i] %= characteristic;
                 if dense_row[i] != 0 {
-                    if self.columns[i] != HashTableLength::MAX {
+                    if self.pivot_lookup[i] != usize::MAX {
                         self.apply_reducer(&mut dense_row, i, basis);
                     }
                 }
@@ -313,7 +315,7 @@ impl Matrix {
         // to prepare interreduction process
         self.pivots[nr_known_pivots..].sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
         for (i,r) in self.pivots[nr_known_pivots..].iter().enumerate() {
-            self.columns[r.columns[0]] = i + nr_known_pivots;
+            self.pivot_lookup[r.columns[0]] = i + nr_known_pivots;
         }
 
         // interreduce newly found pivots
@@ -321,6 +323,8 @@ impl Matrix {
             self.reduce_row(i, basis);
         }
     }
+
+    // pub fn postprocessing(&mut self,
 }
 
 fn generate_sparse_row_from_dense_row(
@@ -351,6 +355,7 @@ fn generate_sparse_row_from_dense_row(
     }
     return (cols, cfs);
 }
+
 
 #[cfg(test)]
 mod tests {
