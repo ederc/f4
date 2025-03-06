@@ -54,11 +54,12 @@ impl PairSet {
         for (i,e) in basis.elements[basis.previous_length..]
         .iter().enumerate() {
             // generate new pairs with basis element e
-            let mut new_pairs: PairVec = basis.elements[..i]
+            println!("i --> {}", i);
+            let mut new_pairs: PairVec = basis.elements[..i+basis.previous_length]
                 .iter().enumerate().map(|(j,f)|
                     Pair {
                         lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
-                        generators: (i, j),
+                        generators: (i+basis.previous_length, j),
                         criterion: if hash_table.are_monomials_coprime(
                             e.monomials[0], f.monomials[0])
                         { Criterion::Product } else if f.is_redundant { Criterion::Chain}
@@ -131,12 +132,17 @@ impl PairSet {
     ) -> PairVec {
 
         // sort pair list by degree
-        self.list.sort_by(|a,b| hash_table.cmp_monomials_by_degree(a.lcm, b.lcm));
+        self.list.sort_by(|a,b| hash_table.cmp_monomials_by_degree(b.lcm, a.lcm));
         // get minimal degree pairs
-        let min_degree = hash_table.monomials[self.list[0].lcm].degree;
+        let min_degree = hash_table.monomials[self.list[self.list.len()-1].lcm].degree;
+        for i in 0..self.list.len() {
+            println!("pair[{}] -> deg {}", i, hash_table.monomials[self.list[i].lcm].degree);
+        }
+        println!("min deg {}", min_degree);
         let idx = self.list.iter()
-            .position(|p| hash_table.monomials[p.lcm].degree > min_degree)
+            .position(|p| hash_table.monomials[p.lcm].degree == min_degree)
             .unwrap();
+        println!("idx -> {}", idx);
         let min_degree_pairs = self.list.split_off(idx);
         // bookkeeping
         self.nr_pairs_reduced += min_degree_pairs.len();
@@ -183,6 +189,6 @@ mod tests {
         let min_degree_pairs = pairs.select_pairs_by_minimal_degree(&hash_table);
 
         assert_eq!(min_degree_pairs.len(), 1);
-        assert_eq!(min_degree_pairs[0], Pair { lcm: 0, generators: (3, 0), criterion: Criterion::Keep } );
+        assert_eq!(min_degree_pairs[0], Pair { lcm: 3, generators: (1, 0), criterion: Criterion::Keep } );
     }
 }

@@ -8,14 +8,14 @@ fn modular_exponent(mut n:i32 ,mut x:i32 , p:i32) -> i32 {
     }
     loop {
         if x == 1 {
-            return (ans * n) % p;
+            return ((ans as i64 * n as i64) % p as i64) as i32;
         }
         if x & 1 == 0 {
             n = ((n as i64 * n as i64) % p as i64) as i32;
             x >>= 1;
             continue;
         } else {
-            ans = (ans * n) % p;
+            ans = ((ans as i64 * n as i64) % p as i64) as i32;
             x -= 1;
         }
     }

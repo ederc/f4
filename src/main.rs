@@ -35,14 +35,21 @@ fn main() {
     let mut pairs = PairSet::new();
     loop {
         pairs.update(&basis, &mut hash_table);
+        println!("update done");
         basis.update_data(&hash_table);
         if basis.is_constant() || pairs.is_empty() {
             break;
         }
         let mut matrix = Matrix::new();
         matrix.preprocessing(&basis, &mut pairs, &mut hash_table);
+        println!("preprocessing done");
         matrix.reduce(&mut basis);
+        println!("reduction done");
+        matrix.postprocessing(&mut basis);
+        println!("postprocessing done");
     }
+
+    println!("done");
 
 
     // for c in coefficients {

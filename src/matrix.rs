@@ -51,9 +51,11 @@ impl Matrix {
         let mut next_pairs = pairs.select_pairs_by_minimal_degree(hash_table);
         debug_assert!(next_pairs.len() > 0);
 
+        println!("pairs: {} / {}", next_pairs.len(), next_pairs.len() + pairs.list.len());
         next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
         let mut start = 0;
         let mut gens = HashSet::new();
+        // println!("next pairs {:?}", next_pairs);
         while start < next_pairs.len()  {
             let first_generator = next_pairs[start].generators.0;
             let lcm = next_pairs[start].lcm;
@@ -64,7 +66,7 @@ impl Matrix {
             let stop = next_pairs[start..]
                 .iter()
                 .position(|p| p.lcm != lcm)
-                .unwrap_or(next_pairs.len());
+                .unwrap_or(next_pairs.len()) + start;
 
             gens.insert(next_pairs[start].generators.1);
             for i in start+1..stop {
@@ -82,7 +84,7 @@ impl Matrix {
                     lcm, basis.elements[*g].monomials[0]);
                 self.add_todo(*g, mult_idx, basis, hash_table);
             }
-            start = stop;
+            start = stop + 1;
             gens.clear();
         }
     }
@@ -180,7 +182,9 @@ impl Matrix {
         pairs: &mut PairSet, hash_table: &mut HashTable) {
 
         self.get_next_bunch_of_pairs(basis, pairs, hash_table);
+        println!("got pairs");
         self.get_reducers(basis, hash_table);
+        println!("got reducers");
         self.convert_hashes_to_columns(hash_table);
         self.pivots.sort_by(|a,b| b.columns[0].cmp(&a.columns[0]));
         self.link_pivots_to_columns();
@@ -323,11 +327,23 @@ impl Matrix {
 
         // interreduce newly found pivots
         for i in nr_known_pivots..self.pivots.len() {
-            self.reduce_row(i, basis);
+            self.interreduce_row(i, basis);
         }
     }
 
-    // pub fn postprocessing(&mut self,
+    pub fn postprocessing(&mut self, basis: &mut Basis) {
+
+        println!("# new pivots {}", self.pivots.len() - self.nr_known_pivots);
+        // change column indices to monomial hash table positions
+        self.pivots[self.nr_known_pivots..].iter_mut().for_each(|a|
+            a.columns.iter_mut().for_each(|b| *b = self.columns[*b]));
+
+        // copy monomial data for new elements to basis
+        self.pivots[self.nr_known_pivots..].iter().for_each(|a|
+            basis.elements[a.basis_index].monomials = a.columns.clone());
+
+        println!("final basis length {}", basis.elements.len());
+    }
 }
 
 fn generate_sparse_row_from_dense_row(
@@ -545,9 +561,9 @@ mod tests {
 
         assert_eq!(matrix.todo.len(), 1);
         assert_eq!(matrix.todo[0].basis_index, 0);
-        assert_eq!(matrix.todo[0].columns, [0,11]);
+        assert_eq!(matrix.todo[0].columns, [3,5]);
         assert_eq!(matrix.pivots.len(), 1);
-        assert_eq!(matrix.pivots[0].basis_index, 3);
-        assert_eq!(matrix.pivots[0].columns, [0,1]);
+        assert_eq!(matrix.pivots[0].basis_index, 1);
+        assert_eq!(matrix.pivots[0].columns, [3,4]);
     }
 }
