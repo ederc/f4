@@ -224,7 +224,7 @@ impl Matrix {
             Row {
                 basis_index: basis.elements.len(),
                 columns: cols,});
-        self.columns[col_idx] = self.pivots.len();
+        self.columns[col_idx] = self.pivots.len()-1;
         basis.elements.push(
             Element {
                 coefficients: cfs,
@@ -280,6 +280,7 @@ impl Matrix {
 
         let characteristic = basis.characteristic as DenseRowCoefficient;
 
+        let pivot_index  = row.columns[0];
         let start_column = row.columns[0+1];
         let last_column  = self.columns.len();
 
@@ -287,23 +288,17 @@ impl Matrix {
             dense_row[*c] = cfs[i] as DenseRowCoefficient;
         }
 
-        let mut new_pivot_index = 0;
         for i in start_column..last_column {
             if dense_row[i] != 0 {
                 dense_row[i] %= characteristic;
                 if dense_row[i] != 0 {
                     if self.columns[i] != HashTableLength::MAX {
                         self.apply_reducer(&mut dense_row, i, basis);
-                    } else {
-                        if new_pivot_index == 0 {
-                            new_pivot_index = i;
-                        }
-                        continue;
                     }
                 }
             }
         }
-        self.update_interreduced_pivot(dense_row, new_pivot_index, basis);
+        self.update_interreduced_pivot(dense_row, pivot_index, basis);
     }
 
     pub fn reduce(&mut self, basis: &mut Basis) {
