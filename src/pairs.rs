@@ -48,7 +48,7 @@ impl PairSet {
 
     pub fn update(
         &mut self,
-        basis: &mut Basis,
+        basis: &Basis,
         hash_table: &mut HashTable
     ) {
         for (i,e) in basis.elements[basis.previous_length..]
@@ -126,27 +126,6 @@ impl PairSet {
                 |p| p.criterion == Criterion::Chain).count();
             // remove useless pairs
             self.list.retain(|p| p.criterion == Criterion::Keep);
-        }
-
-        // check redundancy due to resp. of new basis elements
-        for i in basis.previous_length..basis.elements.len() {
-            for j in 0..i {
-                if !basis.elements[j].is_redundant
-                    && hash_table.divides(
-                        basis.elements[i].monomials[0],
-                        basis.elements[j].monomials[0]) {
-                        basis.elements[j].is_redundant = true;
-                }
-            }
-            for j in basis.previous_length..i {
-                if !basis.elements[i].is_redundant
-                    && hash_table.divides(
-                        basis.elements[j].monomials[0],
-                        basis.elements[i].monomials[0]) {
-                        basis.elements[i].is_redundant = true;
-                        break;
-                }
-            }
         }
     }
 

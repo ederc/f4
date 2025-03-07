@@ -99,6 +99,27 @@ impl Basis {
             hash_table.monomials[self.elements[
                 self.elements.len()-1].monomials[0]].degree);
 
+        // check redundancy due to resp. of new basis elements
+        for i in self.previous_length..self.elements.len() {
+            for j in 0..i {
+                if !self.elements[j].is_redundant
+                    && hash_table.divides(
+                        self.elements[i].monomials[0],
+                        self.elements[j].monomials[0]) {
+                        self.elements[j].is_redundant = true;
+                }
+            }
+            for j in self.previous_length..i {
+                if !self.elements[i].is_redundant
+                    && hash_table.divides(
+                        self.elements[j].monomials[0],
+                        self.elements[i].monomials[0]) {
+                        self.elements[i].is_redundant = true;
+                        break;
+                }
+            }
+        }
+
         // update range for newly added elements
         self.previous_length = self.elements.len();
     }

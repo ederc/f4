@@ -364,11 +364,11 @@ fn generate_sparse_row_from_dense_row(
     let lc = dense_row[col_idx] as Coefficient;
 
     if lc != 1 {
-        let inv = modular_inverse(lc, characteristic as Characteristic);
+        let inv = modular_inverse(lc, characteristic as Characteristic) as DenseRowCoefficient;
 
         for (i, c) in dense_row[col_idx..].iter().enumerate() {
             if *c != 0 {
-                cfs.push(((inv as DenseRowCoefficient * *c) % characteristic) as Coefficient);
+                cfs.push(((inv * *c) % characteristic) as Coefficient);
                 cols.push(i+col_idx);
             }
         }
