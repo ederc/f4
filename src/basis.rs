@@ -45,6 +45,9 @@ impl Basis {
         basis.add_initial_elements(hash_table, coefficients, exponents);
         basis.sort_terms_by_drl(hash_table);
         basis.sort_elements_by_drl(hash_table);
+        for e in &basis.elements {
+            println!("len[] = {}", e.monomials.len());
+        }
         return basis;
     }
 

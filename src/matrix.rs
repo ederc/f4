@@ -142,6 +142,10 @@ impl Matrix {
             }
             i += 1;
         }
+        for p in &self.pivots {
+            println!("reducer {} with lm {:?}", p.basis_index,
+                hash_table.monomials[p.columns[0]].exponents);
+        }
     }
 
     fn convert_hashes_to_columns(&mut self, hash_table: &mut HashTable) {
@@ -177,6 +181,7 @@ impl Matrix {
         for i in 0..self.pivots.len() {
             self.pivot_lookup[self.pivots[i].columns[0]] = i;
         }
+        println!("matrix size {} / {} x {}", self.todo.len(), self.todo.len()+self.pivots.len(), self.columns.len());
     }
 
     pub fn preprocessing(&mut self, basis: &Basis,

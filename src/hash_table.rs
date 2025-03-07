@@ -161,9 +161,9 @@ impl HashTable {
         let start_idx = self.monomials[mon].last_known_divisor;
         for (bi, be) in basis.elements[start_idx..].iter().enumerate() {
             if self.divides(be.monomials[0], mon) && !be.is_redundant {
-                self.monomials[mon].last_known_divisor = bi;
+                self.monomials[mon].last_known_divisor = bi + start_idx;
                 self.indices[mon] = 2;
-                return Some((bi, self.get_difference(mon, be.monomials[0])));
+                return Some((bi+start_idx, self.get_difference(mon, be.monomials[0])));
             }
         }
         return None;
