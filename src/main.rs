@@ -44,7 +44,7 @@ fn main() {
         let mut matrix = Matrix::new();
         matrix.preprocessing(&basis, &mut pairs, &mut hash_table);
         matrix.reduce(&mut basis);
-        matrix.postprocessing(&mut basis);
+        matrix.postprocessing(&mut basis, &hash_table);
         for i in basis.previous_length..basis.elements.len() {
             println!("lm[{}] = {:?} (#mons {})",
             i, hash_table.monomials[basis.elements[i].monomials[0]].exponents,

@@ -339,7 +339,7 @@ impl Matrix {
         }
     }
 
-    pub fn postprocessing(&mut self, basis: &mut Basis) {
+    pub fn postprocessing(&mut self, basis: &mut Basis, hash_table: &HashTable) {
 
         println!("# new pivots {}", self.pivots.len() - self.nr_known_pivots);
         // change column indices to monomial hash table positions
@@ -350,6 +350,8 @@ impl Matrix {
         self.pivots[self.nr_known_pivots..].iter().for_each(|a|
             basis.elements[a.basis_index].monomials = a.columns.clone());
 
+        basis.elements[basis.previous_length..]
+            .sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.monomials[0], b.monomials[0]));
         println!("final basis length {}", basis.elements.len());
     }
 }
@@ -368,6 +370,7 @@ fn generate_sparse_row_from_dense_row(
 
         for (i, c) in dense_row[col_idx..].iter().enumerate() {
             if *c != 0 {
+                println!("inv {} - *c {}", inv, *c);
                 cfs.push(((inv * *c) % characteristic) as Coefficient);
                 cols.push(i+col_idx);
             }
