@@ -34,25 +34,30 @@ fn main() {
     let mut basis = Basis::new::<i32>(&mut hash_table, characteristic, coefficients, exponents);
     let mut pairs = PairSet::new();
     loop {
-        pairs.update(&basis, &mut hash_table);
-        println!("update done");
-        basis.update_data(&hash_table);
+        if basis.previous_length < basis.elements.len() {
+            pairs.update(&mut basis, &mut hash_table);
+            basis.update_data(&hash_table);
+        }
         if basis.is_constant() || pairs.is_empty() {
             break;
         }
         let mut matrix = Matrix::new();
         matrix.preprocessing(&basis, &mut pairs, &mut hash_table);
-        println!("preprocessing done");
         matrix.reduce(&mut basis);
-        println!("reduction done");
         matrix.postprocessing(&mut basis);
         for i in basis.previous_length..basis.elements.len() {
             println!("lm[{}] = {:?} (#mons {})",
             i, hash_table.monomials[basis.elements[i].monomials[0]].exponents,
             basis.elements[i].monomials.len());
         }
-        println!("postprocessing done");
     }
+    println!("((( final basis )))");
+
+        for (i,e) in basis.elements.into_iter().filter(|x| x.is_redundant == false).enumerate() {
+            println!("lm[{}] = {:?} (#mons {} -- redundant? {})",
+            i, hash_table.monomials[e.monomials[0]].exponents,
+            e.monomials.len(), e.is_redundant);
+        }
 
     println!("done");
 
