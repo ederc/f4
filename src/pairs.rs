@@ -91,7 +91,6 @@ impl PairSet {
                 }
             }
 
-            println!("new pairs after sort: {:?}", new_pairs);
             // Gebauer-Möller: remove same lcm pairs from new pairs
             for i in 0..new_pairs.len() {
                 if new_pairs[i].criterion == Criterion::Product {
@@ -101,10 +100,7 @@ impl PairSet {
                         }
                     }
                 } else if new_pairs[i].criterion == Criterion::Keep && i > 0 {
-                    println!("checking pair[{}] {:?}",i, new_pairs[i]);
-                    println!("i-1 = {}", i-1);
                     for j in (0..i).rev() {
-                        println!("trying with pair[{}] {:?}", j, new_pairs[j]);
                         if new_pairs[j].lcm != new_pairs[i].lcm {
                             break;
                         } else if new_pairs[j].criterion == Criterion::Keep {
@@ -138,14 +134,13 @@ impl PairSet {
         self.list.sort_by(|a,b| hash_table.cmp_monomials_by_degree(b.lcm, a.lcm));
         // get minimal degree pairs
         let min_degree = hash_table.monomials[self.list[self.list.len()-1].lcm].degree;
-        for i in 0..self.list.len() {
-            println!("pair[{}] -> deg {}", i, hash_table.monomials[self.list[i].lcm].degree);
-        }
-        println!("min deg {}", min_degree);
+        // for i in 0..self.list.len() {
+        //     println!("pair[{}] -> deg {}", i, hash_table.monomials[self.list[i].lcm].degree);
+        // }
+        // println!("min deg {}", min_degree);
         let idx = self.list.iter()
             .position(|p| hash_table.monomials[p.lcm].degree == min_degree)
             .unwrap();
-        println!("idx -> {}", idx);
         let min_degree_pairs = self.list.split_off(idx);
         // bookkeeping
         self.nr_pairs_reduced += min_degree_pairs.len();

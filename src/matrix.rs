@@ -55,7 +55,6 @@ impl Matrix {
         next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
         let mut start = 0;
         let mut gens = HashSet::new();
-        println!("next pairs {:?}", next_pairs);
         while start < next_pairs.len()  {
             let first_generator = next_pairs[start].generators.0;
             let lcm = next_pairs[start].lcm;
@@ -68,7 +67,6 @@ impl Matrix {
                 .position(|p| p.lcm != lcm)
                 .unwrap_or(next_pairs.len()-start) + start;
 
-            println!("start {} --> stop {}", start, stop);
             gens.insert(next_pairs[start].generators.1);
             for i in start+1..stop {
                 gens.insert(next_pairs[i].generators.0);
@@ -142,10 +140,10 @@ impl Matrix {
             }
             i += 1;
         }
-        for p in &self.pivots {
-            println!("reducer {} with lm {:?}", p.basis_index,
-                hash_table.monomials[p.columns[0]].exponents);
-        }
+        // for p in &self.pivots {
+        //     println!("reducer {} with lm {:?}", p.basis_index,
+        //         hash_table.monomials[p.columns[0]].exponents);
+        // }
     }
 
     fn convert_hashes_to_columns(&mut self, hash_table: &mut HashTable) {
@@ -188,9 +186,7 @@ impl Matrix {
         pairs: &mut PairSet, hash_table: &mut HashTable) {
 
         self.get_next_bunch_of_pairs(basis, pairs, hash_table);
-        println!("got pairs");
         self.get_reducers(basis, hash_table);
-        println!("got reducers");
         self.convert_hashes_to_columns(hash_table);
         self.pivots.sort_by(|a,b| b.columns[0].cmp(&a.columns[0]));
         self.link_pivots_to_columns();
@@ -205,13 +201,12 @@ impl Matrix {
         debug_assert!(
             reducer_columns.len() == reducer_coefficients.len());
         let multiplier = dense_row[col_idx];
-        println!("multiplier {}", multiplier);
+
         // update dense row applying multiplied reducer
         for (col, cf) in reducer_columns
             .iter().zip(reducer_coefficients) {
 
             dense_row[*col] -= multiplier * *cf as DenseRowCoefficient;
-            println!("red in column {} with {} --> {}", *col, *cf, dense_row[*col]);
             if dense_row[*col].is_negative() {
                 dense_row[*col] += characteristic_2;
             }
@@ -230,7 +225,6 @@ impl Matrix {
 
     fn add_new_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
 
-        println!("add new piv for col {}", col_idx);
         let (cols, cfs) = generate_sparse_row_from_dense_row(
             dense_row, col_idx, basis.characteristic as DenseRowCoefficient);
 
@@ -264,12 +258,9 @@ impl Matrix {
         }
 
         let mut new_pivot_index = 0;
-        print!("columns checked ");
         for i in start_column..last_column {
-            print!("{} ", i);
             if dense_row[i] != 0 {
                 dense_row[i] %= characteristic;
-                print!("{} | ", dense_row[i]);
                 if dense_row[i] != 0 {
                     if self.pivot_lookup[i] != usize::MAX {
                         self.apply_reducer(&mut dense_row, i, basis);
@@ -323,7 +314,6 @@ impl Matrix {
         // set previous basis length before adding new elements / pivots
         basis.previous_length = basis.elements.len();
 
-        println!("todo len {}", self.todo.len());
         // find new pivots, reduce todo rows correspondingly
         for i in 0..self.todo.len() {
             self.reduce_row(i, basis);
@@ -345,7 +335,6 @@ impl Matrix {
 
     pub fn postprocessing(&mut self, basis: &mut Basis, hash_table: &HashTable) {
 
-        println!("# new pivots {}", self.pivots.len() - self.nr_known_pivots);
         // change column indices to monomial hash table positions
         self.pivots[self.nr_known_pivots..].iter_mut().for_each(|a|
             a.columns.iter_mut().for_each(|b| *b = self.columns[*b]));
@@ -356,7 +345,6 @@ impl Matrix {
 
         basis.elements[basis.previous_length..]
             .sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.monomials[0], b.monomials[0]));
-        println!("final basis length {}", basis.elements.len());
     }
 }
 
@@ -369,13 +357,11 @@ fn generate_sparse_row_from_dense_row(
 
     let lc = dense_row[col_idx] as Coefficient;
 
-    println!("dense row after reduction: {:?}", dense_row);
     if lc != 1 {
         let inv = modular_inverse(lc, characteristic as Characteristic) as DenseRowCoefficient;
 
         for (i, c) in dense_row[col_idx..].iter().enumerate() {
             if *c != 0 {
-                println!("inv {} - *c {}", inv, *c);
                 cfs.push(((inv * *c) % characteristic) as Coefficient);
                 cols.push(i+col_idx);
             }
