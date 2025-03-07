@@ -50,18 +50,33 @@ impl Basis {
         for e in &basis.elements {
             println!("len[] = {}", e.monomials.len());
         }
+        basis.normalize_elements();
         return basis;
+    }
+    
+    fn normalize_elements(&mut self) {
+        let characteristic:DenseRowCoefficient = self.characteristic.into();
+        for e in &mut self.elements {
+            if e.coefficients[0] != 1 {
+            let inv = modular_inverse(e.coefficients[0],
+                characteristic as Characteristic) as DenseRowCoefficient;
+            println!("cfs {:?}", e.coefficients);
+            e.coefficients.iter_mut()
+                .for_each(|c|
+                    *c = ((inv * *c as DenseRowCoefficient) % characteristic)
+                    as Coefficient);
+            }
+            println!("cfs {:?}", e.coefficients);
+        }
     }
 
     fn add_initial_elements(
         &mut self,
         hash_table: &mut HashTable,
         cfs: Vec<CoeffVec>, exps: Vec<Vec<ExpVec>>) {
-        let characteristic:DenseRowCoefficient = self.characteristic.into();
         for (c,e) in cfs.iter().zip(exps) {
-            let inv = modular_inverse(c[0], characteristic as Characteristic) as DenseRowCoefficient;
             self.elements.push(Element {
-                coefficients: c.iter().map(|a| ((inv * *a as DenseRowCoefficient) % characteristic) as Coefficient).collect(),
+                coefficients: c.iter().map(|a| *a % self.characteristic as Coefficient).collect(),
                 monomials: e.iter().map(|a| hash_table.insert(a.to_vec())).collect(),
                 is_redundant: false});
         }
@@ -143,9 +158,9 @@ mod tests {
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3], vec![1,1]], vec![vec![0,2], vec![1,1]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
-        assert_eq!(basis.elements[0].coefficients, [-3,1]);
+        assert_eq!(basis.elements[0].coefficients, [1,-43681]);
         assert_eq!(basis.elements[0].monomials, [1,2]);
-        assert_eq!(basis.elements[1].coefficients, [-2,2]);
+        assert_eq!(basis.elements[1].coefficients, [1,-1]);
         assert_eq!(basis.elements[1].monomials, [0,1]);
     }
 
