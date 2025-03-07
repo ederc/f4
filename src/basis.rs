@@ -1,5 +1,7 @@
 use crate::primitives::*;
 
+use crate::arithmetic::i32::modular_inverse;
+
 use std::cmp:: {
     max,
 };
@@ -55,10 +57,11 @@ impl Basis {
         &mut self,
         hash_table: &mut HashTable,
         cfs: Vec<CoeffVec>, exps: Vec<Vec<ExpVec>>) {
-        let characteristic = self.characteristic;
+        let characteristic:DenseRowCoefficient = self.characteristic.into();
         for (c,e) in cfs.iter().zip(exps) {
+            let inv = modular_inverse(c[0], characteristic as Characteristic) as DenseRowCoefficient;
             self.elements.push(Element {
-                coefficients: c.iter().map(|a| a % characteristic).collect(),
+                coefficients: c.iter().map(|a| ((inv * *a as DenseRowCoefficient) % characteristic) as Coefficient).collect(),
                 monomials: e.iter().map(|a| hash_table.insert(a.to_vec())).collect(),
                 is_redundant: false});
         }

@@ -205,12 +205,13 @@ impl Matrix {
         debug_assert!(
             reducer_columns.len() == reducer_coefficients.len());
         let multiplier = dense_row[col_idx];
-
+        println!("multiplier {}", multiplier);
         // update dense row applying multiplied reducer
         for (col, cf) in reducer_columns
             .iter().zip(reducer_coefficients) {
 
             dense_row[*col] -= multiplier * *cf as DenseRowCoefficient;
+            println!("red in column {} with {} --> {}", *col, *cf, dense_row[*col]);
             if dense_row[*col].is_negative() {
                 dense_row[*col] += characteristic_2;
             }
@@ -263,9 +264,12 @@ impl Matrix {
         }
 
         let mut new_pivot_index = 0;
+        print!("columns checked ");
         for i in start_column..last_column {
+            print!("{} ", i);
             if dense_row[i] != 0 {
                 dense_row[i] %= characteristic;
+                print!("{} | ", dense_row[i]);
                 if dense_row[i] != 0 {
                     if self.pivot_lookup[i] != usize::MAX {
                         self.apply_reducer(&mut dense_row, i, basis);
@@ -365,6 +369,7 @@ fn generate_sparse_row_from_dense_row(
 
     let lc = dense_row[col_idx] as Coefficient;
 
+    println!("dense row after reduction: {:?}", dense_row);
     if lc != 1 {
         let inv = modular_inverse(lc, characteristic as Characteristic) as DenseRowCoefficient;
 

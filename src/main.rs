@@ -46,9 +46,10 @@ fn main() {
         matrix.reduce(&mut basis);
         matrix.postprocessing(&mut basis, &hash_table);
         for i in basis.previous_length..basis.elements.len() {
-            println!("lm[{}] = {:?} (#mons {})",
+            println!("lm[{}] = {:?} (#mons {}) -- lc {}",
             i, hash_table.monomials[basis.elements[i].monomials[0]].exponents,
-            basis.elements[i].monomials.len());
+            basis.elements[i].monomials.len(),
+            basis.elements[i].coefficients[0]);
         }
     }
     println!("((( final basis )))");
