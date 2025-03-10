@@ -393,6 +393,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_multiply_add_with_check() {
+        let mut coeff: DenseRowCoefficient = 100;
+        let multiplier: DenseRowCoefficient = 2;
+        let reducer: DenseRowCoefficient = 31;
+        let characteristic_squared: DenseRowCoefficient = 101*101;
+
+        // without negative overflow
+        multiply_add_with_check(&mut coeff, multiplier, reducer, characteristic_squared);
+        assert_eq!(coeff, 38);
+        // with negative overflow
+        multiply_add_with_check(&mut coeff, multiplier, reducer, characteristic_squared);
+        assert_eq!(coeff, 10177);
+    }
+
+    #[test]
     fn test_generate_sparse_row_from_dense_row() {
         let dense_row: DenseRow = [0,2,3,0,0,23].to_vec();
         let characteristic: DenseRowCoefficient = 101;
