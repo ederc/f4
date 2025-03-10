@@ -41,7 +41,7 @@ impl HashTable {
             monomials      : Vec::new(),
             random_seed    : Vec::new(),
             values         : vec![0; INITIAL_HASH_TABLE_SIZE],
-            map            : vec![usize::MAX; INITIAL_HASH_TABLE_SIZE],
+            map            : vec![HashTableLength::MAX; INITIAL_HASH_TABLE_SIZE],
             divisor_bounds : Vec::new(),
             indices        : vec![0; INITIAL_HASH_TABLE_SIZE],
             nr_variables   : initial_exponents[0][0].len(),
@@ -225,21 +225,29 @@ impl HashTable {
         return Ordering::Equal;
     }
 
-    // fn enlarge(&mut self) {
-    //     self.map.reserve(self.length);
-    //     self.map.for_each(|a| *a = 0);
-    //     self.values.reserve(self.length);
-    //     self.values[self.length..].for_each(|a| *a = 0);
-    //     self.indices.reserve(self.length);
-    //     self.indices[self.length..].for_each(|a| *a = 0);
-    //     self.length *= 2;
-    //
-    //     // reinsert elements
-    //     let div = self.length - 1;
-    //
-    //
-    //
-    // }
+    fn enlarge(&mut self) {
+        self.length *= 2;
+        println!("map len {}", self.map.len());
+        self.map = vec![HashTableLength::MAX; self.length];
+        println!("map len {}", self.map.len());
+        self.values.resize(self.length, 0);
+        self.indices.resize(self.length, 0);
+
+        // reinsert elements
+        let div = self.length - 1;
+
+        for i in 0..self.monomials.len() {
+            let h = self.values[i];
+            let mut k = h;
+            for j in 0..self.length {
+                k = (k+j) & div;
+                if self.map[k] == HashTableLength::MAX {
+                    self.map[k] = i;
+                    break;
+                }
+            }
+        }
+    }
 
     pub fn insert(&mut self, exp: ExpVec) -> HashTableLength {
         let div = self.length - 1;
@@ -249,7 +257,7 @@ impl HashTable {
         while i < self.map.len() {
             k = (k+i) & div;
             let hm = self.map[k];
-            if hm == usize::MAX {
+            if hm == HashTableLength::MAX {
                 break;
             }
             if self.values[hm] != h {
@@ -263,9 +271,9 @@ impl HashTable {
             }
             return hm;
         }
-        // if self.monomials.len() == self.length {
-        //     self.enlarge();
-        // }
+        if self.monomials.len() == self.length {
+            self.enlarge();
+        }
         let pos = self.monomials.len();
         self.map[k] = pos;
         let monomial = Monomial {
@@ -285,6 +293,22 @@ impl HashTable {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_enlarge() {
+        let exp: Vec<Vec<ExpVec>> = vec!(vec!(vec!(1,1,1,1,1)));
+        let mut ht = HashTable::new(&exp);
+        assert_eq!(ht.monomials.len(), 0);
+        assert_eq!(ht.indices.len(), INITIAL_HASH_TABLE_SIZE);
+        assert_eq!(ht.map.len(), INITIAL_HASH_TABLE_SIZE);
+        assert_eq!(ht.values.len(), INITIAL_HASH_TABLE_SIZE);
+        ht.enlarge();
+        assert_eq!(ht.indices.len(), 2*INITIAL_HASH_TABLE_SIZE);
+        assert_eq!(ht.map.len(), 2*INITIAL_HASH_TABLE_SIZE);
+        assert_eq!(ht.values.len(), 2*INITIAL_HASH_TABLE_SIZE);
+        assert_eq!(ht.indices.iter().all(|a| *a == 0), true);
+        assert_eq!(ht.values.iter().all(|a| *a == 0), true);
+
+    }
     #[test]
     fn test_random_seed() {
         let exp: Vec<Vec<ExpVec>> = vec!(vec!(vec!(1,1,1,1,1)));
