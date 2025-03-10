@@ -64,16 +64,14 @@ fn main() {
         la_overall_time += la_time.elapsed();
         matrix.postprocessing(&mut basis, &hash_table);
         println!("{:13.3} sec ", rd_time.elapsed().as_secs_f64());
-        // for i in basis.previous_length..basis.elements.len() {
-        //     println!("lm[{}] = {:?} (#mons {}) -- lc {}",
-        //     i, hash_table.monomials[basis.elements[i].monomials[0]].exponents,
-        //     basis.elements[i].monomials.len(),
-        //     basis.elements[i].coefficients[0]);
-        // }
     }
 
     println!("--------------------------------------------------------------------------------");
-    println!("length of basis: {}", basis.elements.into_iter().filter(|x| x.is_redundant == false).collect::<Vec<_>>().len());
+    println!("length of basis: {}", basis.elements
+        .into_iter()
+        .filter(|x| x.is_redundant == false)
+        .collect::<Vec<_>>()
+        .len());
     println!("--------------------------------------------------------------------------------");
     println!("overall time:        {:13.3} sec", overall_time.elapsed().as_secs_f64());
     println!("--------------------------------------------------------------------------------");
@@ -85,38 +83,9 @@ fn main() {
         la_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
     println!("--------------------------------------------------------------------------------");
 
-        // for (i,e) in basis.elements.into_iter().filter(|x| x.is_redundant == false).enumerate() {
-        //     println!("lm[{}] = {:?} (#mons {} -- redundant? {})",
-        //     i, hash_table.monomials[e.monomials[0]].exponents,
-        //     e.monomials.len(), e.is_redundant);
-        // }
-
-
-    // for c in coefficients {
-    // println!("cfs {:?}", c);
+    // for (i,e) in basis.elements.into_iter().filter(|x| x.is_redundant == false).enumerate() {
+    //     println!("lm[{}] = {:?} (#mons {} -- redundant? {})",
+    //     i, hash_table.monomials[e.monomials[0]].exponents,
+    //     e.monomials.len(), e.is_redundant);
     // }
-    // let exp: ExpVec = vec![1,1,1];
-    // println!("and char is {}", characteristic);
-    // println!("size {}", std::mem::size_of::<usize>());
-    // let mut hash_table: HashTable = HashTable::new(&exponents);
-    // let mut basis: Basis = Basis:new(
-    // for i in (0..exponents.len()).step_by(variables.len()) {
-    //     println!("{:?}", &exponents[i..i+variables.len()]);
-    //     map.insert(&exponents[i..i+variables.len()]);
-    // }
-    // for val in map.values() {
-    //     println!("{val}");
-    // let basis = basis::generate_initial_basis(
-    //     characteristic,
-    //     lengths,
-    //     coefficients,
-    //     exponents);
-    // let basis = basis::Basis::<u32> {
-    //         previous_length: 0,
-    //         is_constant: false,
-    //         maximum_total_degree: 0,
-    //         is_redundant: vec![false; lengths.len()],
-    //         monomials: monomials,
-    //         coefficients: coefficients,
-    //     }
 }
