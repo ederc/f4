@@ -200,35 +200,14 @@ impl Matrix {
         let reducer_columns = &reducer.columns;
         debug_assert!(
             reducer_columns.len() == reducer_coefficients.len());
-        let multiplier = -dense_row[col_idx];
 
+        let multiplier = dense_row[col_idx];
 
-        // let mut i = 0;
-        // let offset = reducer_columns.len() % 4;
-        // // println!("offset {} --> len {}", offset, reducer_columns.len());
-        // unsafe {
-        // while i < offset {
-        //     dense_row[reducer_columns[i]] += multiplier * reducer_coefficients[i] as DenseRowCoefficient;
-        //     i += 1;
-        // }
-        // while i < reducer_columns.len() {
-        //     dense_row[reducer_columns[i]] += multiplier * reducer_coefficients[i] as DenseRowCoefficient;
-        //     dense_row[reducer_columns[i+1]] += multiplier * reducer_coefficients[i+1] as DenseRowCoefficient;
-        //     dense_row[reducer_columns[i+2]] += multiplier * reducer_coefficients[i+2] as DenseRowCoefficient;
-        //     dense_row[reducer_columns[i+3]] += multiplier * reducer_coefficients[i+3] as DenseRowCoefficient;
-        //     i += 4;
-        // }
-        // }
-            // if dense_row[reducer_columns[i]] < 0 {
-            //     dense_row[reducer_columns[i]] += characteristic_2;
-            // }
-        // }
         // update dense row applying multiplied reducer
-        unsafe {
         reducer_columns
             .iter().zip(reducer_coefficients).for_each(|(a,b)|
-                dense_row[*a] += multiplier * *b as DenseRowCoefficient);
-        }
+                multiply_add_with_check(
+                    &mut dense_row[*a], multiplier, *b as DenseRowCoefficient, characteristic_2));
     }
 
     fn update_interreduced_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
@@ -367,6 +346,16 @@ impl Matrix {
         basis.elements[basis.previous_length..]
             .sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.monomials[0], b.monomials[0]));
     }
+}
+
+fn multiply_add_with_check(
+    coeff: &mut DenseRowCoefficient,
+    multiplier: DenseRowCoefficient,
+    reducer: DenseRowCoefficient,
+    characteristic_squared: DenseRowCoefficient) {
+
+    *coeff -= multiplier * reducer;
+    *coeff += (*coeff >> 63) & characteristic_squared;
 }
 
 fn generate_sparse_row_from_dense_row(
