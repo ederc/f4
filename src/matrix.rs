@@ -51,7 +51,7 @@ impl Matrix {
         let mut next_pairs = pairs.select_pairs_by_minimal_degree(hash_table);
         debug_assert!(next_pairs.len() > 0);
 
-        print!("{} -> {} / {}\t", hash_table.monomials[next_pairs[0].lcm].degree, next_pairs.len(), next_pairs.len() + pairs.list.len());
+        print!("{:3} {:7} {:7} ", hash_table.monomials[next_pairs[0].lcm].degree, next_pairs.len(), next_pairs.len() + pairs.list.len());
         next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
         let mut start = 0;
         let mut gens = HashSet::new();
@@ -179,7 +179,7 @@ impl Matrix {
         for i in 0..self.pivots.len() {
             self.pivot_lookup[self.pivots[i].columns[0]] = i;
         }
-        print!(" --> {} / {} x {}", self.todo.len(), self.todo.len()+self.pivots.len(), self.columns.len());
+        print!(" {:7} x {:<7}", self.todo.len()+self.pivots.len(), self.columns.len());
     }
 
     pub fn preprocessing(&mut self, basis: &Basis,
@@ -332,7 +332,7 @@ impl Matrix {
 
     pub fn postprocessing(&mut self, basis: &mut Basis, hash_table: &HashTable) {
 
-        println!(" --> {} new \t {} zero\t",
+        print!(" {:7} new {:7} zero",
             basis.elements.len()-basis.previous_length,
             self.todo.len() -basis.elements.len()+basis.previous_length);
         // change column indices to monomial hash table positions
