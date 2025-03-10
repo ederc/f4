@@ -28,6 +28,7 @@ pub struct HashTable {
     divisor_bounds   : ExpVec,
     pub indices      : Vec<HashTableLength>,
     pub nr_variables : usize,
+    length           : usize,
 }
 
 
@@ -44,6 +45,7 @@ impl HashTable {
             divisor_bounds : Vec::new(),
             indices        : vec![0; INITIAL_HASH_TABLE_SIZE],
             nr_variables   : initial_exponents[0][0].len(),
+            length         : INITIAL_HASH_TABLE_SIZE,
         };
         ht.generate_random_seed(ht.nr_variables);
         ht.generate_divisor_bounds(initial_exponents);
@@ -223,8 +225,24 @@ impl HashTable {
         return Ordering::Equal;
     }
 
+    // fn enlarge(&mut self) {
+    //     self.map.reserve(self.length);
+    //     self.map.for_each(|a| *a = 0);
+    //     self.values.reserve(self.length);
+    //     self.values[self.length..].for_each(|a| *a = 0);
+    //     self.indices.reserve(self.length);
+    //     self.indices[self.length..].for_each(|a| *a = 0);
+    //     self.length *= 2;
+    //
+    //     // reinsert elements
+    //     let div = self.length - 1;
+    //
+    //
+    //
+    // }
+
     pub fn insert(&mut self, exp: ExpVec) -> HashTableLength {
-        let div = self.map.len() - 1;
+        let div = self.length - 1;
         let h = self.get_hash(&exp);
         let mut k = h;
         let mut i = 0;
@@ -245,6 +263,9 @@ impl HashTable {
             }
             return hm;
         }
+        // if self.monomials.len() == self.length {
+        //     self.enlarge();
+        // }
         let pos = self.monomials.len();
         self.map[k] = pos;
         let monomial = Monomial {

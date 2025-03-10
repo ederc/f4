@@ -77,9 +77,12 @@ fn main() {
     println!("--------------------------------------------------------------------------------");
     println!("overall time:        {:13.3} sec", overall_time.elapsed().as_secs_f64());
     println!("--------------------------------------------------------------------------------");
-    println!("update time:         {:13.3} sec", up_overall_time.as_secs_f64());
-    println!("preprocessing time:  {:13.3} sec", pre_overall_time.as_secs_f64());
-    println!("linear algebra time: {:13.3} sec", la_overall_time.as_secs_f64());
+    println!("update time:         {:13.3} sec {:6.1}%", up_overall_time.as_secs_f64(),
+        up_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
+    println!("preprocessing time:  {:13.3} sec {:6.1}%", pre_overall_time.as_secs_f64(),
+        pre_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
+    println!("linear algebra time: {:13.3} sec {:6.1}%", la_overall_time.as_secs_f64(),
+        la_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
     println!("--------------------------------------------------------------------------------");
 
         // for (i,e) in basis.elements.into_iter().filter(|x| x.is_redundant == false).enumerate() {
