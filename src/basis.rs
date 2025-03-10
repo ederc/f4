@@ -47,9 +47,6 @@ impl Basis {
         basis.add_initial_elements(hash_table, coefficients, exponents);
         basis.sort_terms_by_drl(hash_table);
         basis.sort_elements_by_drl(hash_table);
-        for e in &basis.elements {
-            println!("len[] = {}", e.monomials.len());
-        }
         basis.normalize_elements();
         return basis;
     }
@@ -60,13 +57,11 @@ impl Basis {
             if e.coefficients[0] != 1 {
             let inv = modular_inverse(e.coefficients[0],
                 characteristic as Characteristic) as DenseRowCoefficient;
-            println!("cfs {:?}", e.coefficients);
             e.coefficients.iter_mut()
                 .for_each(|c|
                     *c = ((inv * *c as DenseRowCoefficient) % characteristic)
                     as Coefficient);
             }
-            println!("cfs {:?}", e.coefficients);
         }
     }
 

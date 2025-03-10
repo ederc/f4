@@ -6,6 +6,11 @@ mod pairs;
 mod arithmetic;
 mod basis;
 
+use std::time::{
+    Duration,
+    Instant,
+};
+
 use crate::io::{
     read_file,
     Config,
@@ -42,25 +47,28 @@ fn main() {
             break;
         }
         let mut matrix = Matrix::new();
+        let pre_time = Instant::now();
         matrix.preprocessing(&basis, &mut pairs, &mut hash_table);
+        print!(" {} ms ", pre_time.elapsed().as_millis());
+        let la_time = Instant::now();
         matrix.reduce(&mut basis);
+        print!(" {} ms ", la_time.elapsed().as_millis());
         matrix.postprocessing(&mut basis, &hash_table);
-        for i in basis.previous_length..basis.elements.len() {
-            println!("lm[{}] = {:?} (#mons {}) -- lc {}",
-            i, hash_table.monomials[basis.elements[i].monomials[0]].exponents,
-            basis.elements[i].monomials.len(),
-            basis.elements[i].coefficients[0]);
-        }
+        // for i in basis.previous_length..basis.elements.len() {
+        //     println!("lm[{}] = {:?} (#mons {}) -- lc {}",
+        //     i, hash_table.monomials[basis.elements[i].monomials[0]].exponents,
+        //     basis.elements[i].monomials.len(),
+        //     basis.elements[i].coefficients[0]);
+        // }
     }
-    println!("((( final basis )))");
+    print!("((( final basis ))) ");
 
-        for (i,e) in basis.elements.into_iter().filter(|x| x.is_redundant == false).enumerate() {
-            println!("lm[{}] = {:?} (#mons {} -- redundant? {})",
-            i, hash_table.monomials[e.monomials[0]].exponents,
-            e.monomials.len(), e.is_redundant);
-        }
-
-    println!("done");
+    println!("of length {}", basis.elements.into_iter().filter(|x| x.is_redundant == false).collect::<Vec<_>>().len());
+        // for (i,e) in basis.elements.into_iter().filter(|x| x.is_redundant == false).enumerate() {
+        //     println!("lm[{}] = {:?} (#mons {} -- redundant? {})",
+        //     i, hash_table.monomials[e.monomials[0]].exponents,
+        //     e.monomials.len(), e.is_redundant);
+        // }
 
 
     // for c in coefficients {

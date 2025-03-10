@@ -51,7 +51,7 @@ impl Matrix {
         let mut next_pairs = pairs.select_pairs_by_minimal_degree(hash_table);
         debug_assert!(next_pairs.len() > 0);
 
-        println!("pairs: {} / {}", next_pairs.len(), next_pairs.len() + pairs.list.len());
+        print!("{} -> {} / {}\t", hash_table.monomials[next_pairs[0].lcm].degree, next_pairs.len(), next_pairs.len() + pairs.list.len());
         next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
         let mut start = 0;
         let mut gens = HashSet::new();
@@ -179,7 +179,7 @@ impl Matrix {
         for i in 0..self.pivots.len() {
             self.pivot_lookup[self.pivots[i].columns[0]] = i;
         }
-        println!("matrix size {} / {} x {}", self.todo.len(), self.todo.len()+self.pivots.len(), self.columns.len());
+        print!(" --> {} / {} x {}", self.todo.len(), self.todo.len()+self.pivots.len(), self.columns.len());
     }
 
     pub fn preprocessing(&mut self, basis: &Basis,
@@ -200,16 +200,34 @@ impl Matrix {
         let reducer_columns = &reducer.columns;
         debug_assert!(
             reducer_columns.len() == reducer_coefficients.len());
-        let multiplier = dense_row[col_idx];
+        let multiplier = -dense_row[col_idx];
 
+
+        // let mut i = 0;
+        // let offset = reducer_columns.len() % 4;
+        // // println!("offset {} --> len {}", offset, reducer_columns.len());
+        // unsafe {
+        // while i < offset {
+        //     dense_row[reducer_columns[i]] += multiplier * reducer_coefficients[i] as DenseRowCoefficient;
+        //     i += 1;
+        // }
+        // while i < reducer_columns.len() {
+        //     dense_row[reducer_columns[i]] += multiplier * reducer_coefficients[i] as DenseRowCoefficient;
+        //     dense_row[reducer_columns[i+1]] += multiplier * reducer_coefficients[i+1] as DenseRowCoefficient;
+        //     dense_row[reducer_columns[i+2]] += multiplier * reducer_coefficients[i+2] as DenseRowCoefficient;
+        //     dense_row[reducer_columns[i+3]] += multiplier * reducer_coefficients[i+3] as DenseRowCoefficient;
+        //     i += 4;
+        // }
+        // }
+            // if dense_row[reducer_columns[i]] < 0 {
+            //     dense_row[reducer_columns[i]] += characteristic_2;
+            // }
+        // }
         // update dense row applying multiplied reducer
-        for (col, cf) in reducer_columns
-            .iter().zip(reducer_coefficients) {
-
-            dense_row[*col] -= multiplier * *cf as DenseRowCoefficient;
-            if dense_row[*col].is_negative() {
-                dense_row[*col] += characteristic_2;
-            }
+        unsafe {
+        reducer_columns
+            .iter().zip(reducer_coefficients).for_each(|(a,b)|
+                dense_row[*a] += multiplier * *b as DenseRowCoefficient);
         }
     }
 
@@ -335,6 +353,9 @@ impl Matrix {
 
     pub fn postprocessing(&mut self, basis: &mut Basis, hash_table: &HashTable) {
 
+        println!(" --> {} new \t {} zero\t",
+            basis.elements.len()-basis.previous_length,
+            self.todo.len() -basis.elements.len()+basis.previous_length);
         // change column indices to monomial hash table positions
         self.pivots[self.nr_known_pivots..].iter_mut().for_each(|a|
             a.columns.iter_mut().for_each(|b| *b = self.columns[*b]));
