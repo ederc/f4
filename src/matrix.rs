@@ -393,6 +393,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_generate_sparse_row_from_dense_row() {
+        let dense_row: DenseRow = [0,2,3,0,0,23].to_vec();
+        let characteristic: DenseRowCoefficient = 101;
+        let (cols, cfs) = generate_sparse_row_from_dense_row(
+            dense_row, 1, characteristic);
+        assert_eq!(cols, [1,2,5]);
+        assert_eq!(cfs, [1,52,62]);
+    }
+    #[test]
     fn test_interreduce_row() {
         let fc : Characteristic = 65521;
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
