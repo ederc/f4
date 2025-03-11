@@ -227,9 +227,7 @@ impl HashTable {
 
     fn enlarge(&mut self) {
         self.length *= 2;
-        println!("map len {}", self.map.len());
         self.map = vec![HashTableLength::MAX; self.length];
-        println!("map len {}", self.map.len());
         self.values.resize(self.length, 0);
         self.indices.resize(self.length, 0);
 
