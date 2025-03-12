@@ -1,4 +1,6 @@
 use std::collections::HashSet;
+use std::io::Write;
+use std::io::stdout;
 use rayon::prelude::*;
 
 use crate::arithmetic::i32::{
@@ -52,8 +54,10 @@ impl Matrix {
         let mut next_pairs = pairs.select_pairs_by_minimal_degree(hash_table);
         debug_assert!(next_pairs.len() > 0);
 
-        print!("{:3} {:7} {:7} ", hash_table.monomials[next_pairs[0].lcm as usize].degree, next_pairs.len(), next_pairs.len() + pairs.list.len());
-        next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
+        print!("{:3} {:7} {:7} ", hash_table.monomials[next_pairs[0].lcm as usize].degree,
+            next_pairs.len(), next_pairs.len() + pairs.list.len());
+            next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
+        stdout().flush().unwrap();
         let mut start = 0;
         let mut gens = HashSet::new();
         while start < next_pairs.len()  {
@@ -181,6 +185,7 @@ impl Matrix {
             self.pivot_lookup[self.pivots[i].columns[0] as usize] = i;
         }
         print!(" {:7} x {:<7}", self.todo.len()+self.pivots.len(), self.columns.len());
+        stdout().flush().unwrap();
     }
 
     pub fn preprocessing(&mut self, basis: &Basis,
@@ -336,6 +341,7 @@ impl Matrix {
         print!(" {:7} new {:7} zero",
             basis.elements.len()-basis.previous_length,
             self.todo.len() -basis.elements.len()+basis.previous_length);
+        stdout().flush().unwrap();
         // change column indices to monomial hash table positions
         self.pivots[self.nr_known_pivots..].iter_mut().for_each(|a|
             a.columns.iter_mut().for_each(|b| *b = self.columns[*b as usize]));
