@@ -33,6 +33,7 @@ pub struct Matrix {
     columns: Vec<HashTableLength>,
     pivot_lookup: Vec<usize>,
     nr_known_pivots: usize,
+    density: f64,
 }
 
 impl Matrix {
@@ -43,6 +44,7 @@ impl Matrix {
             columns : Vec::new(),
             pivot_lookup : Vec::new(),
             nr_known_pivots: 0,
+            density: 0.0,
         };
 
         return mat;
@@ -178,13 +180,22 @@ impl Matrix {
         }
     }
 
+    fn get_density(&mut self) {
+        let mat_size = (self.todo.len()+self.pivots.len()) * self.columns.len();
+        let mut nr_nonzero_elements: usize = self.pivots.iter().map(|x| x.columns.len()).sum::<usize>();
+        nr_nonzero_elements += self.todo.iter().map(|x| x.columns.len()).sum::<usize>();
+        self.density = nr_nonzero_elements as f64 / mat_size as f64 * 100.0;
+    }
+
     fn link_pivots_to_columns(&mut self) {
         self.pivot_lookup = vec!(usize::MAX; self.columns.len());
 
         for i in 0..self.pivots.len() {
             self.pivot_lookup[self.pivots[i].columns[0] as usize] = i;
         }
-        print!(" {:7} x {:<7}", self.todo.len()+self.pivots.len(), self.columns.len());
+        self.get_density();
+        print!(" {:7} x {:<7} {:8.2}%", self.todo.len()+self.pivots.len(),
+            self.columns.len(), self.density);
         stdout().flush().unwrap();
     }
 
@@ -399,6 +410,32 @@ fn generate_sparse_row_from_dense_row(
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_get_density() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
+        vec![1, -1], vec![1, 1]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
+        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
+        vec![vec![0,0,1], vec![0,0,0]]];
+        let mut hash_table = HashTable::new(&exps);
+        let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+
+        let mut matrix = Matrix::new();
+
+        let mult: ExpVec = vec![0,0,2];
+        let mult_idx = hash_table.insert(mult);
+
+        let mut matrix = Matrix::new();
+
+        matrix.add_todo(3, mult_idx, &basis, &mut hash_table);
+        matrix.get_reducers(&basis, &mut hash_table);
+        matrix.convert_hashes_to_columns(&mut hash_table);
+        matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
+        matrix.link_pivots_to_columns();
+        matrix.get_density();
+        assert_eq!(matrix.density, 25.0);
+    }
     #[test]
     fn test_multiply_add_with_check() {
         let mut coeff: DenseRowCoefficient = 100;
