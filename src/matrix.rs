@@ -349,7 +349,7 @@ impl Matrix {
 
     pub fn postprocessing(&mut self, basis: &mut Basis, hash_table: &HashTable) {
 
-        print!(" {:7} new {:7} zero",
+        print!(" {:9} new {:9} zero",
             basis.elements.len()-basis.previous_length,
             self.todo.len() -basis.elements.len()+basis.previous_length);
         stdout().flush().unwrap();
