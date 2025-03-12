@@ -319,15 +319,8 @@ mod tests {
     fn test_random_seed() {
         let exp: Vec<Vec<ExpVec>> = vec!(vec!(vec!(1,1,1,1,1)));
         let ht = HashTable::new(&exp);
-        if std::mem::size_of::<usize>() == 4 {
         assert_eq!(ht.random_seed,
             [723471715, 2497366906, 2064144800, 2008045182, 3532304609]);
-        }
-        if std::mem::size_of::<usize>() == 8 {
-        assert_eq!(ht.random_seed,
-            [660888219700579, 3396719463693796860,
-            17326311066685913516, 2586175631380707723, 16544630075375549064]);
-        }
     }
     #[test]
     fn test_cmp_monomials_by_degree() {
@@ -431,7 +424,7 @@ mod tests {
         ht.insert(exps[0][0].clone());
         ht.insert(exps[0][1].clone());
         let diff = ht.get_difference(1,0);
-        assert_eq!(ht.monomials[diff].exponents, [1,0,1]);
+        assert_eq!(ht.monomials[diff as usize].exponents, [1,0,1]);
     }
     #[test]
     fn test_get_lcm() {
@@ -442,7 +435,7 @@ mod tests {
         ht.insert(exps[0][0].clone());
         ht.insert(exps[0][1].clone());
         let lcm = ht.get_lcm(0,1);
-        assert_eq!(ht.monomials[lcm].exponents, [2,1,3]);
+        assert_eq!(ht.monomials[lcm as usize].exponents, [2,1,3]);
     }
     #[test]
     fn test_are_monomials_prime() {

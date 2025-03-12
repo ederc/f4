@@ -528,15 +528,15 @@ mod tests {
 
         assert_eq!(matrix.todo.len(), 1);
         assert_eq!(matrix.todo[0].basis_index, 0);
-        assert_eq!(hash_table.monomials[matrix.todo[0].columns[0]].exponents, [1,1,1]);
-        assert_eq!(hash_table.monomials[matrix.todo[0].columns[1]].exponents, [1,1,0]);
+        assert_eq!(hash_table.monomials[matrix.todo[0].columns[0] as usize].exponents, [1,1,1]);
+        assert_eq!(hash_table.monomials[matrix.todo[0].columns[1] as usize].exponents, [1,1,0]);
         assert_eq!(matrix.pivots.len(), 2);
         assert_eq!(matrix.pivots[0].basis_index, 0);
-        assert_eq!(hash_table.monomials[matrix.pivots[0].columns[0]].exponents, [1,1,1]);
-        assert_eq!(hash_table.monomials[matrix.pivots[0].columns[1]].exponents, [1,1,0]);
+        assert_eq!(hash_table.monomials[matrix.pivots[0].columns[0] as usize].exponents, [1,1,1]);
+        assert_eq!(hash_table.monomials[matrix.pivots[0].columns[1] as usize].exponents, [1,1,0]);
         assert_eq!(matrix.pivots[1].basis_index, 2);
-        assert_eq!(hash_table.monomials[matrix.pivots[1].columns[0]].exponents, [1,1,0]);
-        assert_eq!(hash_table.monomials[matrix.pivots[1].columns[1]].exponents, [0,2,0]);
+        assert_eq!(hash_table.monomials[matrix.pivots[1].columns[0] as usize].exponents, [1,1,0]);
+        assert_eq!(hash_table.monomials[matrix.pivots[1].columns[1] as usize].exponents, [0,2,0]);
     }
     #[test]
     fn test_add_todo() {
