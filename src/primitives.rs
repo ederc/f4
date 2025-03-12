@@ -1,10 +1,10 @@
 // Exponent stuff
-pub type Exponent = u32;
+pub type Exponent = u16;
 pub type ExpVec = Vec<Exponent>;
 
 // Hash table stuff
-pub type HashValue = usize;
-pub type HashTableLength = usize;
+pub type HashValue = u32;
+pub type HashTableLength = u32;
 pub type DivisorMask = usize;
 pub type MonomVec = Vec<HashTableLength>;
 

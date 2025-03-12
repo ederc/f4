@@ -67,8 +67,8 @@ impl HashTable {
     pub fn get_difference(
         &mut self, mon1: HashTableLength, mon2:HashTableLength)
         -> HashTableLength {
-        let lm_e = &self.monomials[mon1].exponents;
-        let lm_f = &self.monomials[mon2].exponents;
+        let lm_e = &self.monomials[mon1 as usize].exponents;
+        let lm_f = &self.monomials[mon2 as usize].exponents;
         debug_assert!(lm_e.into_iter()
             .zip(lm_f)
             .all(|(a,b)| *a>=*b));
@@ -81,8 +81,8 @@ impl HashTable {
     pub fn get_lcm(
         &mut self, mon1: HashTableLength, mon2:HashTableLength)
         -> HashTableLength {
-        let lm_e = &self.monomials[mon1].exponents;
-        let lm_f = &self.monomials[mon2].exponents;
+        let lm_e = &self.monomials[mon1 as usize].exponents;
+        let lm_f = &self.monomials[mon2 as usize].exponents;
         return self.insert(lm_e.into_iter()
             .zip(lm_f)
             .map(|(a,b)| max(*a,*b))
@@ -92,8 +92,8 @@ impl HashTable {
     pub fn are_monomials_coprime(
         &self, mon1: HashTableLength, mon2:HashTableLength)
         -> bool {
-        let lm_e = &self.monomials[mon1].exponents;
-        let lm_f = &self.monomials[mon2].exponents;
+        let lm_e = &self.monomials[mon1 as usize].exponents;
+        let lm_f = &self.monomials[mon2 as usize].exponents;
         if lm_e.into_iter().zip(lm_f).any(|(a,b)| *a!=0 && *b!=0) {
             return false;
         }  else {
@@ -145,11 +145,11 @@ impl HashTable {
 
     // Tests if monomial ma divides monomial mb
     pub fn divides(&self, ma: HashTableLength, mb: HashTableLength) -> bool {
-        if self.monomials[ma].divisor_mask & !self.monomials[mb].divisor_mask != 0 {
+        if self.monomials[ma as usize].divisor_mask & !self.monomials[mb as usize].divisor_mask != 0 {
             return false;
         }
-        let ea = &self.monomials[ma].exponents;
-        let eb = &self.monomials[mb].exponents;
+        let ea = &self.monomials[ma as usize].exponents;
+        let eb = &self.monomials[mb as usize].exponents;
         if ea.into_iter().zip(eb).any(|(a,b)| a > b) {
             return false;
         }  else {
@@ -158,13 +158,13 @@ impl HashTable {
     }
 
     pub fn find_divisor(&mut self, mon: HashTableLength, basis: &Basis)
-        -> Option<(HashTableLength, HashTableLength)> {
+        -> Option<(BasisLength, HashTableLength)> {
 
-        let start_idx = self.monomials[mon].last_known_divisor;
+        let start_idx = self.monomials[mon as usize].last_known_divisor;
         for (bi, be) in basis.elements[start_idx..].iter().enumerate() {
             if self.divides(be.monomials[0], mon) && !be.is_redundant {
-                self.monomials[mon].last_known_divisor = bi + start_idx;
-                self.indices[mon] = 2;
+                self.monomials[mon as usize].last_known_divisor = bi + start_idx;
+                self.indices[mon as usize] = 2;
                 return Some((bi+start_idx, self.get_difference(mon, be.monomials[0])));
             }
         }
@@ -180,8 +180,8 @@ impl HashTable {
         for (idx, m) in mons.iter().enumerate() {
             let mut exps: ExpVec = vec!(0; vec_len);
             for i in 0..vec_len {
-                exps[i] = self.monomials[mult_idx].exponents[i]
-                    + self.monomials[*m].exponents[i];
+                exps[i] = self.monomials[mult_idx as usize].exponents[i]
+                    + self.monomials[*m as usize].exponents[i];
             }
             mult_mons[idx] = self.insert(exps);
         }
@@ -198,9 +198,9 @@ impl HashTable {
 
     pub fn cmp_monomials_by_degree(&self, a: HashTableLength, b:HashTableLength) -> Ordering {
         debug_assert!(
-            self.monomials[a].exponents.len() == self.monomials[b].exponents.len());
-        let ma = &self.monomials[a];
-        let mb = &self.monomials[b];
+            self.monomials[a as usize].exponents.len() == self.monomials[b as usize].exponents.len());
+        let ma = &self.monomials[a as usize];
+        let mb = &self.monomials[b as usize];
         if ma.degree != mb.degree {
             if ma.degree > mb.degree { return Ordering::Greater; }
             else { return Ordering::Less; }
@@ -210,9 +210,9 @@ impl HashTable {
 
     pub fn cmp_monomials_by_drl(&self, a: HashTableLength, b:HashTableLength) -> Ordering {
         debug_assert!(
-            self.monomials[a].exponents.len() == self.monomials[b].exponents.len());
-        let ma = &self.monomials[a];
-        let mb = &self.monomials[b];
+            self.monomials[a as usize].exponents.len() == self.monomials[b as usize].exponents.len());
+        let ma = &self.monomials[a as usize];
+        let mb = &self.monomials[b as usize];
         if ma.degree != mb.degree {
             if ma.degree > mb.degree { return Ordering::Greater; }
             else { return Ordering::Less; }
@@ -232,15 +232,15 @@ impl HashTable {
         self.indices.resize(self.length, 0);
 
         // reinsert elements
-        let div = self.length - 1;
+        let div = (self.length - 1) as HashTableLength;
 
         for i in 0..self.monomials.len() {
             let h = self.values[i];
             let mut k = h;
             for j in 0..self.length {
-                k = (k+j) & div;
-                if self.map[k] == HashTableLength::MAX {
-                    self.map[k] = i;
+                k = (k+j as HashTableLength) & div;
+                if self.map[k as usize] == HashTableLength::MAX {
+                    self.map[k as usize] = i as HashTableLength;
                     break;
                 }
             }
@@ -248,21 +248,21 @@ impl HashTable {
     }
 
     pub fn insert(&mut self, exp: ExpVec) -> HashTableLength {
-        let div = self.length - 1;
+        let div = (self.length - 1) as HashTableLength;
         let h = self.get_hash(&exp);
         let mut k = h;
         let mut i = 0;
         while i < self.map.len() {
-            k = (k+i) & div;
-            let hm = self.map[k];
+            k = (k+i as HashTableLength) & div;
+            let hm = self.map[k as usize];
             if hm == HashTableLength::MAX {
                 break;
             }
-            if self.values[hm] != h {
+            if self.values[hm as usize] != h {
                 i += 1;
                 continue;
             }
-            let eh = &self.monomials[hm].exponents;
+            let eh = &self.monomials[hm as usize].exponents;
             if *eh != exp {
                 i += 1;
                 continue;
@@ -272,19 +272,27 @@ impl HashTable {
         if self.monomials.len() == self.length {
             self.enlarge();
         }
-        let pos = self.monomials.len();
-        self.map[k] = pos;
+        let pos = self.monomials.len() as HashTableLength;
+        self.map[k as usize] = pos;
         let monomial = Monomial {
-            degree: exp.iter().sum(),
+            degree: get_degree(&exp),
             divisor_mask: self.get_divisor_mask(&exp),
             exponents: exp,
             last_known_divisor: 0,
         };
         self.monomials.push(monomial);
-        self.values[pos] = h;
+        self.values[pos as usize] = h;
 
         return pos;
     }
+}
+
+fn get_degree(exp: &ExpVec) -> Degree {
+    let mut deg = 0;
+    for e in exp {
+        deg += *e as Degree;
+    }
+    return deg;
 }
 
 #[cfg(test)]

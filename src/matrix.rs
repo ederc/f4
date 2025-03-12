@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use rayon::prelude::*;
 
 use crate::arithmetic::i32::{
     modular_inverse,
@@ -51,7 +52,7 @@ impl Matrix {
         let mut next_pairs = pairs.select_pairs_by_minimal_degree(hash_table);
         debug_assert!(next_pairs.len() > 0);
 
-        print!("{:3} {:7} {:7} ", hash_table.monomials[next_pairs[0].lcm].degree, next_pairs.len(), next_pairs.len() + pairs.list.len());
+        print!("{:3} {:7} {:7} ", hash_table.monomials[next_pairs[0].lcm as usize].degree, next_pairs.len(), next_pairs.len() + pairs.list.len());
         next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
         let mut start = 0;
         let mut gens = HashSet::new();
@@ -60,7 +61,7 @@ impl Matrix {
             let lcm = next_pairs[start].lcm;
             // set index of lcm as done since we have at least a second generator
             // which plays the role as reducer of this monomial
-            hash_table.indices[lcm] = 1;
+            hash_table.indices[lcm as usize] = 1;
             self.columns.push(lcm);
             let stop = next_pairs[start..]
                 .iter()
@@ -113,8 +114,8 @@ impl Matrix {
         let mut i = 0;
         while i < self.todo.len() {
             for j in 0..self.todo[i].columns.len() {
-                if hash_table.indices[self.todo[i].columns[j]] == 0 {
-                    hash_table.indices[self.todo[i].columns[j]] = 1;
+                if hash_table.indices[self.todo[i].columns[j] as usize] == 0 {
+                    hash_table.indices[self.todo[i].columns[j] as usize] = 1;
                     self.columns.push(self.todo[i].columns[j]);
                     match hash_table.find_divisor(self.todo[i].columns[j], basis) {
                         Some((divisor_idx, multiplier)) =>
@@ -128,8 +129,8 @@ impl Matrix {
         i = 0;
         while i < self.pivots.len() {
             for j in 0..self.pivots[i].columns.len() {
-                if hash_table.indices[self.pivots[i].columns[j]] == 0 {
-                    hash_table.indices[self.pivots[i].columns[j]] = 1;
+                if hash_table.indices[self.pivots[i].columns[j] as usize] == 0 {
+                    hash_table.indices[self.pivots[i].columns[j] as usize] = 1;
                     self.columns.push(self.pivots[i].columns[j]);
                     match hash_table.find_divisor(self.pivots[i].columns[j], basis) {
                         Some((divisor_idx, multiplier)) =>
@@ -152,24 +153,24 @@ impl Matrix {
         // set colum index for corresponding monomial hash in hash table
         self.columns.sort_by(|a,b| hash_table.cmp_monomials_by_drl(*b, *a));
         for i in 0..self.columns.len() {
-            hash_table.indices[self.columns[i]] = i;
+            hash_table.indices[self.columns[i] as usize] = i as HashTableLength;
         }
         // map hashes to columns in matrix
         for i in 0..self.todo.len() {
             for j in 0..self.todo[i].columns.len() {
                 self.todo[i].columns[j] =
-                    hash_table.indices[self.todo[i].columns[j]];
+                    hash_table.indices[self.todo[i].columns[j] as usize];
             }
         }
         for i in 0..self.pivots.len() {
             for j in 0..self.pivots[i].columns.len() {
                 self.pivots[i].columns[j] =
-                    hash_table.indices[self.pivots[i].columns[j]];
+                    hash_table.indices[self.pivots[i].columns[j] as usize];
             }
         }
         // reset indices
         for i in 0..self.columns.len() {
-            hash_table.indices[self.columns[i]] = 0;
+            hash_table.indices[self.columns[i] as usize] = 0;
         }
     }
 
@@ -177,7 +178,7 @@ impl Matrix {
         self.pivot_lookup = vec!(usize::MAX; self.columns.len());
 
         for i in 0..self.pivots.len() {
-            self.pivot_lookup[self.pivots[i].columns[0]] = i;
+            self.pivot_lookup[self.pivots[i].columns[0] as usize] = i;
         }
         print!(" {:7} x {:<7}", self.todo.len()+self.pivots.len(), self.columns.len());
     }
@@ -207,7 +208,7 @@ impl Matrix {
         reducer_columns
             .iter().zip(reducer_coefficients).for_each(|(a,b)|
                 multiply_add_with_check(
-                    &mut dense_row[*a], multiplier, *b as DenseRowCoefficient, characteristic_2));
+                    &mut dense_row[*a as usize], multiplier, *b as DenseRowCoefficient, characteristic_2));
     }
 
     fn update_interreduced_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
@@ -247,11 +248,11 @@ impl Matrix {
 
         let characteristic = basis.characteristic as DenseRowCoefficient;
 
-        let start_column = row.columns[0];
+        let start_column = row.columns[0] as usize;
         let last_column  = self.columns.len();
 
         for (i,c) in row.columns.iter().enumerate() {
-            dense_row[*c] = cfs[i] as DenseRowCoefficient;
+            dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
         }
 
         let mut new_pivot_index = 0;
@@ -285,12 +286,12 @@ impl Matrix {
 
         let characteristic = basis.characteristic as DenseRowCoefficient;
 
-        let pivot_index  = row.columns[0];
-        let start_column = row.columns[0+1];
+        let pivot_index  = row.columns[0] as usize;
+        let start_column = row.columns[0+1] as usize;
         let last_column  = self.columns.len();
 
         for (i,c) in row.columns.iter().enumerate() {
-            dense_row[*c] = cfs[i] as DenseRowCoefficient;
+            dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
         }
 
         for i in start_column..last_column {
@@ -312,16 +313,16 @@ impl Matrix {
         basis.previous_length = basis.elements.len();
 
         // find new pivots, reduce todo rows correspondingly
-        for i in 0..self.todo.len() {
+        (0..self.todo.len()).for_each(|i| {
             self.reduce_row(i, basis);
-        }
+        });
 
         let nr_known_pivots = self.nr_known_pivots;
         // sort newly found pivots by decreasing column index
         // to prepare interreduction process
         self.pivots[nr_known_pivots..].sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
         for (i,r) in self.pivots[nr_known_pivots..].iter().enumerate() {
-            self.pivot_lookup[r.columns[0]] = i + nr_known_pivots;
+            self.pivot_lookup[r.columns[0] as usize] = i + nr_known_pivots;
         }
 
         // interreduce newly found pivots
@@ -337,7 +338,7 @@ impl Matrix {
             self.todo.len() -basis.elements.len()+basis.previous_length);
         // change column indices to monomial hash table positions
         self.pivots[self.nr_known_pivots..].iter_mut().for_each(|a|
-            a.columns.iter_mut().for_each(|b| *b = self.columns[*b]));
+            a.columns.iter_mut().for_each(|b| *b = self.columns[*b as usize]));
 
         // copy monomial data for new elements to basis
         self.pivots[self.nr_known_pivots..].iter().for_each(|a|
@@ -373,14 +374,14 @@ fn generate_sparse_row_from_dense_row(
         for (i, c) in dense_row[col_idx..].iter().enumerate() {
             if *c != 0 {
                 cfs.push(((inv * *c) % characteristic) as Coefficient);
-                cols.push(i+col_idx);
+                cols.push((i+col_idx) as HashTableLength);
             }
         }
     } else {
         for (i, c) in dense_row[col_idx..].iter().enumerate() {
             if *c != 0 {
                 cfs.push(*c as Coefficient);
-                cols.push(i+col_idx);
+                cols.push((i+col_idx) as HashTableLength);
             }
         }
     }
