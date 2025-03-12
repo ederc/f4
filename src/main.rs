@@ -42,7 +42,7 @@ fn main() {
     let mut hash_table = HashTable::new(&exponents);
     let mut basis = Basis::new::<i32>(&mut hash_table, characteristic, coefficients, exponents);
     let mut pairs = PairSet::new();
-    println!("deg     sel   pairs        matrix        density                 data               round time");
+    println!("deg     sel   pairs        matrix        density              new  data             round time");
     println!("----------------------------------------------------------------------------------------------");
     loop {
         let rd_time = Instant::now();
