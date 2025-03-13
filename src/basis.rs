@@ -127,7 +127,7 @@ impl Basis {
                 }
             }
             for j in self.previous_length..i {
-                if !self.elements[i].is_redundant
+                if !self.elements[j].is_redundant
                     && hash_table.divides(
                         self.elements[j].monomials[0],
                         self.elements[i].monomials[0]) {
