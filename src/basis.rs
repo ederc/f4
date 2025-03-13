@@ -54,6 +54,10 @@ impl Basis {
     fn normalize_elements(&mut self) {
         let characteristic:DenseRowCoefficient = self.characteristic.into();
         for e in &mut self.elements {
+            // make all coefficients >= 0
+            e.coefficients.iter_mut()
+                .for_each(|c| { while *c < 0 { *c += self.characteristic; } });
+            // normalize if needed
             if e.coefficients[0] != 1 {
             let inv = modular_inverse(e.coefficients[0],
                 characteristic as Characteristic) as DenseRowCoefficient;
@@ -153,9 +157,9 @@ mod tests {
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3], vec![1,1]], vec![vec![0,2], vec![1,1]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
-        assert_eq!(basis.elements[0].coefficients, [1,-43681]);
+        assert_eq!(basis.elements[0].coefficients, [1,21840]);
         assert_eq!(basis.elements[0].monomials, [1,2]);
-        assert_eq!(basis.elements[1].coefficients, [1,-1]);
+        assert_eq!(basis.elements[1].coefficients, [1,65520]);
         assert_eq!(basis.elements[1].monomials, [0,1]);
     }
 

@@ -350,8 +350,9 @@ impl Matrix {
     pub fn postprocessing(&mut self, basis: &mut Basis, hash_table: &HashTable) {
 
         print!(" {:9} new {:9} zero",
-            basis.elements.len()-basis.previous_length,
-            self.todo.len() -basis.elements.len()+basis.previous_length);
+            basis.elements.len() as i64 -basis.previous_length as i64,
+            self.todo.len() as i64 - basis.elements.len() as i64
+                + basis.previous_length as i64);
         stdout().flush().unwrap();
         // change column indices to monomial hash table positions
         self.pivots[self.nr_known_pivots..].iter_mut().for_each(|a|
