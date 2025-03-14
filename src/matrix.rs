@@ -363,7 +363,7 @@ impl Matrix {
             basis.elements[a.basis_index].monomials = a.columns.clone());
 
         basis.elements[basis.previous_length..]
-            .sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.monomials[0], b.monomials[0]));
+            .sort_by(|a,b| hash_table.cmp_monomials_by_drl(b.monomials[0], a.monomials[0]));
     }
 }
 
