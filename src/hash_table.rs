@@ -135,7 +135,8 @@ impl HashTable {
     fn get_divisor_mask(&mut self, exp: &ExpVec) -> DivisorMask {
         let divisor_bounds = &self.divisor_bounds;
         let mut divisor_mask = 0usize;
-        for i in 0..exp.len() {
+        let min_len = min(exp.len(), divisor_bounds.len());
+        for i in 0..min_len {
             if exp[i] >= divisor_bounds[i] {
                 divisor_mask |= 1 << i;
             }
@@ -380,6 +381,14 @@ mod tests {
             vec![2,0,3]));
         let ht = HashTable::new(&exps);
         assert_eq!(ht.divisor_bounds, [1,1,0]);
+    }
+    #[test]
+    fn test_get_divisor_mask() {
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(
+            vec![1;65]));
+        let mut ht = HashTable::new(&exps);
+        println!("{:?}", ht.get_divisor_mask(&exps[0][0]));
+        // assert_eq!(ht.divisor_bounds, [1,1,0]);
     }
     #[test]
     fn test_init_hash_table() {
