@@ -163,7 +163,7 @@ impl HashTable {
 
         let start_idx = self.monomials[mon as usize].last_known_divisor;
         for (bi, be) in basis.elements[start_idx..].iter().enumerate() {
-            if self.divides(be.monomials[0], mon) && !be.is_redundant {
+            if !be.is_redundant && self.divides(be.monomials[0], mon) {
                 self.monomials[mon as usize].last_known_divisor = bi + start_idx;
                 self.indices[mon as usize] = 2;
                 return Some((bi+start_idx, self.get_difference(mon, be.monomials[0])));
@@ -270,9 +270,6 @@ impl HashTable {
             }
             return hm;
         }
-        if self.monomials.len() == self.length {
-            self.enlarge();
-        }
         let pos = self.monomials.len() as HashTableLength;
         self.map[k as usize] = pos;
         let monomial = Monomial {
@@ -283,6 +280,12 @@ impl HashTable {
         };
         self.monomials.push(monomial);
         self.values[pos as usize] = h;
+
+        // enlarge AFTER insertion to correctly adjust
+        // the just inserted element
+        if self.monomials.len() == self.length {
+            self.enlarge();
+        }
 
         return pos;
     }
