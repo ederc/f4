@@ -101,20 +101,20 @@ impl Basis {
         // basis is the one of largest degree
         debug_assert!((self.previous_length..self.elements.len()).collect::<Vec<BasisLength>>()
                 .windows(2)
-                .all(|x| hash_table.monomials[self.elements[x[0]].monomials[0] as usize].degree
-                    <= hash_table.monomials[self.elements[x[1]].monomials[0] as usize].degree));
+                .all(|x| hash_table.degrees[self.elements[x[0]].monomials[0] as usize]
+                    <= hash_table.degrees[self.elements[x[1]].monomials[0] as usize]));
 
         // check for constant
-        if hash_table.monomials[
-            self.elements[self.previous_length].monomials[0] as usize].degree == 0 {
+        if hash_table.degrees[
+            self.elements[self.previous_length].monomials[0] as usize] == 0 {
             self.is_constant = true;
         }
 
         // update maximal total degree
         self.maximum_total_degree = max(
             self.maximum_total_degree,
-            hash_table.monomials[self.elements[
-                self.elements.len()-1].monomials[0] as usize].degree);
+            hash_table.degrees[self.elements[
+                self.elements.len()-1].monomials[0] as usize]);
 
         // check redundancy due to resp. of new basis elements
         for i in self.previous_length..self.elements.len() {

@@ -58,6 +58,7 @@ fn main() {
         let mut matrix = Matrix::new();
         let pre_time = Instant::now();
         matrix.preprocessing(&basis, &mut pairs, &mut hash_table);
+        println!("{:13.3} sec ", pre_time.elapsed().as_secs_f64());
         pre_overall_time += pre_time.elapsed();
         let la_time = Instant::now();
         matrix.reduce(&mut basis);
@@ -66,6 +67,14 @@ fn main() {
         println!("{:13.3} sec ", rd_time.elapsed().as_secs_f64());
     }
 
+    // // final reduction
+    // let rd_time = Instant::now();
+    // let final_reduction_time = Instant::now();
+    // let mut matrix = Matrix::new();
+    // matrix.final_basis_reduction(&mut basis, &mut hash_table);
+    //
+    // // printing info
+    // println!("{:13.3} sec ", rd_time.elapsed().as_secs_f64());
     println!("----------------------------------------------------------------------------------------------");
     println!("length of basis: {}", basis.elements
         .into_iter()

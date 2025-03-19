@@ -54,6 +54,7 @@ impl PairSet {
         for (i,e) in basis.elements[basis.previous_length..]
         .iter().enumerate() {
             // generate new pairs with basis element e
+            // println!("lm -> {:?}", hash_table.monomials[e.monomials[0] as usize].exponents);
             let mut new_pairs: PairVec = basis.elements[..i+basis.previous_length]
                 .iter().enumerate().map(|(j,f)|
                     Pair {
@@ -67,9 +68,9 @@ impl PairSet {
 
             // Gebauer-Möller: testing old pairs
             for p in &mut self.list {
-                let deg_p = hash_table.monomials[p.lcm as usize].degree;
-                if deg_p > hash_table.monomials[new_pairs[p.generators.0].lcm as usize].degree
-                    && deg_p > hash_table.monomials[new_pairs[p.generators.1].lcm as usize].degree
+                let deg_p = hash_table.degrees[p.lcm as usize];
+                if deg_p > hash_table.degrees[new_pairs[p.generators.0].lcm as usize]
+                    && deg_p > hash_table.degrees[new_pairs[p.generators.1].lcm as usize]
                     && hash_table.divides(e.monomials[0], p.lcm) {
                         p.criterion = Criterion::Chain;
                 }
@@ -133,13 +134,13 @@ impl PairSet {
         // sort pair list by degree
         self.list.sort_by(|a,b| hash_table.cmp_monomials_by_degree(b.lcm, a.lcm));
         // get minimal degree pairs
-        let min_degree = hash_table.monomials[self.list[self.list.len()-1].lcm as usize].degree;
+        let min_degree = hash_table.degrees[self.list[self.list.len()-1].lcm as usize];
         // for i in 0..self.list.len() {
         //     println!("pair[{}] -> deg {}", i, hash_table.monomials[self.list[i].lcm].degree);
         // }
         // println!("min deg {}", min_degree);
         let idx = self.list.iter()
-            .position(|p| hash_table.monomials[p.lcm as usize].degree == min_degree)
+            .position(|p| hash_table.degrees[p.lcm as usize]== min_degree)
             .unwrap();
         let min_degree_pairs = self.list.split_off(idx);
         // bookkeeping

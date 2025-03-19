@@ -3,6 +3,12 @@ use std::io::Write;
 use std::io::stdout;
 use rayon::prelude::*;
 
+use std::time::{
+    Duration,
+    Instant,
+};
+
+
 use crate::arithmetic::i32::{
     modular_inverse,
 };
@@ -56,14 +62,15 @@ impl Matrix {
         let mut next_pairs = pairs.select_pairs_by_minimal_degree(hash_table);
         debug_assert!(next_pairs.len() > 0);
 
-        print!("{:3} {:7} {:7} ", hash_table.monomials[next_pairs[0].lcm as usize].degree,
+        print!("{:3} {:7} {:7} ", hash_table.degrees[next_pairs[0].lcm as usize],
             next_pairs.len(), next_pairs.len() + pairs.list.len());
             next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
         stdout().flush().unwrap();
         let mut start = 0;
+        let mut rd_oa_time = Duration::new(0,0);
         let mut gens = HashSet::new();
         while start < next_pairs.len()  {
-            let first_generator = next_pairs[start].generators.0;
+            let first_generator = next_pairs[start].generators.1;
             let lcm = next_pairs[start].lcm;
             // set index of lcm as done since we have at least a second generator
             // which plays the role as reducer of this monomial
@@ -74,10 +81,10 @@ impl Matrix {
                 .position(|p| p.lcm != lcm)
                 .unwrap_or(next_pairs.len()-start) + start;
 
-            gens.insert(next_pairs[start].generators.1);
+            gens.insert(next_pairs[start].generators.0);
             for i in start+1..stop {
-                gens.insert(next_pairs[i].generators.0);
                 gens.insert(next_pairs[i].generators.1);
+                gens.insert(next_pairs[i].generators.0);
             }
             debug_assert!(gens.len() > 0);
             let mult_idx = hash_table.get_difference(
@@ -86,13 +93,16 @@ impl Matrix {
             self.add_pivot(first_generator, mult_idx, basis, hash_table);
 
             for g in &gens {
+            let rd_time = Instant::now();
                 let mult_idx = hash_table.get_difference(
                     lcm, basis.elements[*g].monomials[0]);
                 self.add_todo(*g, mult_idx, basis, hash_table);
+            rd_oa_time += rd_time.elapsed();
             }
             start = stop;
             gens.clear();
         }
+        println!("hs {:13.3} sec ", rd_oa_time.as_secs_f64());
     }
 
     fn add_pivot(&mut self,
@@ -199,10 +209,26 @@ impl Matrix {
         stdout().flush().unwrap();
     }
 
+    // pub fn final_basis_reduction(&mut self, basis: &mut Basis,
+    //     hash_table: &mut HashTable) {
+    //
+    //     // preprocessing
+    //     self.get_non_redundant_basis_elements(basis, hash_table);
+    //     self.get_reducers(basis, hash_table);
+    //     self.convert_hashes_to_columns(hash_table);
+    //     self.pivots.sort_by(|a,b| b.columns[0].cmp(&a.columns[0]));
+    //     self.link_pivots_to_columns();
+    //
+    //     // reduction
+    //     self.reduce
+    // }
+
     pub fn preprocessing(&mut self, basis: &Basis,
         pairs: &mut PairSet, hash_table: &mut HashTable) {
 
+        let rd_time = Instant::now();
         self.get_next_bunch_of_pairs(basis, pairs, hash_table);
+        println!("{:13.3} sec ", rd_time.elapsed().as_secs_f64());
         self.get_reducers(basis, hash_table);
         self.convert_hashes_to_columns(hash_table);
         self.pivots.sort_by(|a,b| b.columns[0].cmp(&a.columns[0]));
@@ -327,6 +353,11 @@ impl Matrix {
 
         // set previous basis length before adding new elements / pivots
         basis.previous_length = basis.elements.len();
+
+        // println!("reducers for this matrix");
+        // for p in &self.pivots {
+        //     println!("red {}", p.basis_index);
+        // }
 
         // find new pivots, reduce todo rows correspondingly
         (0..self.todo.len()).for_each(|i| {
@@ -572,15 +603,15 @@ mod tests {
 
         assert_eq!(matrix.todo.len(), 1);
         assert_eq!(matrix.todo[0].basis_index, 0);
-        assert_eq!(hash_table.monomials[matrix.todo[0].columns[0] as usize].exponents, [1,1,1]);
-        assert_eq!(hash_table.monomials[matrix.todo[0].columns[1] as usize].exponents, [1,1,0]);
+        assert_eq!(hash_table.exponents[matrix.todo[0].columns[0] as usize], [1,1,1]);
+        assert_eq!(hash_table.exponents[matrix.todo[0].columns[1] as usize], [1,1,0]);
         assert_eq!(matrix.pivots.len(), 2);
         assert_eq!(matrix.pivots[0].basis_index, 0);
-        assert_eq!(hash_table.monomials[matrix.pivots[0].columns[0] as usize].exponents, [1,1,1]);
-        assert_eq!(hash_table.monomials[matrix.pivots[0].columns[1] as usize].exponents, [1,1,0]);
+        assert_eq!(hash_table.exponents[matrix.pivots[0].columns[0] as usize], [1,1,1]);
+        assert_eq!(hash_table.exponents[matrix.pivots[0].columns[1] as usize], [1,1,0]);
         assert_eq!(matrix.pivots[1].basis_index, 2);
-        assert_eq!(hash_table.monomials[matrix.pivots[1].columns[0] as usize].exponents, [1,1,0]);
-        assert_eq!(hash_table.monomials[matrix.pivots[1].columns[1] as usize].exponents, [0,2,0]);
+        assert_eq!(hash_table.exponents[matrix.pivots[1].columns[0] as usize], [1,1,0]);
+        assert_eq!(hash_table.exponents[matrix.pivots[1].columns[1] as usize], [0,2,0]);
     }
     #[test]
     fn test_add_todo() {
@@ -641,10 +672,10 @@ mod tests {
         matrix.get_next_bunch_of_pairs(&basis, &mut pairs, &mut hash_table);
 
         assert_eq!(matrix.todo.len(), 1);
-        assert_eq!(matrix.todo[0].basis_index, 0);
-        assert_eq!(matrix.todo[0].columns, [3,5]);
+        assert_eq!(matrix.todo[0].basis_index, 1);
+        assert_eq!(matrix.todo[0].columns, [3,4]);
         assert_eq!(matrix.pivots.len(), 1);
-        assert_eq!(matrix.pivots[0].basis_index, 1);
-        assert_eq!(matrix.pivots[0].columns, [3,4]);
+        assert_eq!(matrix.pivots[0].basis_index, 0);
+        assert_eq!(matrix.pivots[0].columns, [3,5]);
     }
 }
