@@ -192,6 +192,7 @@ impl HashTable {
         return mult_mons;
     }
 
+    #[inline(always)]
     fn get_hash(&self, exp: &ExpVec) -> HashValue {
         let mut h: HashValue = 0;
         for i in 0..exp.len() {
@@ -262,16 +263,15 @@ impl HashTable {
         let h = self.get_hash(&exp);
         let exp_len = self.exponents.len() as HashTableLength;
         let mut k = h;
-        let mut i = 0 as HashTableLength;
-        let map_len = self.map.len() as HashTableLength;
-        while i < map_len {
-            k = (h+i) & div;
-            let hm = self.map[k as usize] ;
+        // let mut i = 0 as HashTableLength;
+        let map_len = self.length;
+        for  i in 0.. map_len {
+            k = (h+i as u32) & div;
+            let hm = self.map[k as usize];
             if hm > exp_len {
                 break;
             }
-            if self.exponents[hm as usize] != exp {
-                i += 1;
+            if self.values[hm as usize] != h || self.exponents[hm as usize] != exp {
                 continue;
             }
             return hm;
