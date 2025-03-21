@@ -310,32 +310,34 @@ impl Matrix {
     fn interreduce_row(&mut self, idx: usize, basis: &mut Basis) {
 
         let row = &self.pivots[idx];
-        let mut dense_row: DenseRow = vec!(0; self.columns.len());
+        if row.columns.len() > 1 {
+            let mut dense_row: DenseRow = vec!(0; self.columns.len());
 
-        let cfs = &basis.elements[row.basis_index as usize].coefficients;
-        debug_assert!(cfs.len() == row.columns.len());
+            let cfs = &basis.elements[row.basis_index as usize].coefficients;
+            debug_assert!(cfs.len() == row.columns.len());
 
-        let characteristic = basis.characteristic as DenseRowCoefficient;
+            let characteristic = basis.characteristic as DenseRowCoefficient;
 
-        let pivot_index  = row.columns[0] as usize;
-        let start_column = row.columns[0+1] as usize;
-        let last_column  = self.columns.len();
+            let pivot_index  = row.columns[0] as usize;
+            let start_column = row.columns[0+1] as usize;
+            let last_column  = self.columns.len();
 
-        for (i,c) in row.columns.iter().enumerate() {
-            dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
-        }
+            for (i,c) in row.columns.iter().enumerate() {
+                dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
+            }
 
-        for i in start_column..last_column {
-            if dense_row[i] != 0 {
-                dense_row[i] %= characteristic;
+            for i in start_column..last_column {
                 if dense_row[i] != 0 {
-                    if self.pivot_lookup[i] != usize::MAX {
-                        self.apply_reducer(&mut dense_row, i, basis);
+                    dense_row[i] %= characteristic;
+                    if dense_row[i] != 0 {
+                        if self.pivot_lookup[i] != usize::MAX {
+                            self.apply_reducer(&mut dense_row, i, basis);
+                        }
                     }
                 }
             }
+            self.update_interreduced_pivot(dense_row, pivot_index, basis);
         }
-        self.update_interreduced_pivot(dense_row, pivot_index, basis);
     }
 
     pub fn reduce(&mut self, basis: &mut Basis) {
