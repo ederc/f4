@@ -318,13 +318,13 @@ mod tests {
 
         // add random data to hash table, otherwise enlargement
         // is not useful and slow
-        let mut rng = rand::thread_rng();
-        for i in 0..INITIAL_HASH_TABLE_SIZE-1 {
-            let e = vec!(rng.gen::<u16>(),
-                            rng.gen::<u16>(),
-                            rng.gen::<u16>(),
-                            rng.gen::<u16>(),
-                            rng.gen::<u16>());
+        let mut rng = rand::rng();
+        for _i in 0..INITIAL_HASH_TABLE_SIZE-1 {
+            let e = vec!(rng.random::<u16>(),
+                            rng.random::<u16>(),
+                            rng.random::<u16>(),
+                            rng.random::<u16>(),
+                            rng.random::<u16>());
             ht.insert(e);
         }
         assert_eq!(ht.indices.len(), 2*INITIAL_HASH_TABLE_SIZE);
@@ -405,8 +405,8 @@ mod tests {
         let exps: Vec<Vec<ExpVec>> = vec!(vec!(
             vec![1;65]));
         let mut ht = HashTable::new(&exps);
-        println!("{:?}", ht.get_divisor_mask(&exps[0][0]));
-        // assert_eq!(ht.divisor_bounds, [1,1,0]);
+        ht.insert(vec![1;65]);
+        assert_eq!(ht.divisor_masks[1], 18446744073709551615);
     }
     #[test]
     fn test_init_hash_table() {
