@@ -492,8 +492,6 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
-        let mut matrix = Matrix::new();
-
         let mult: ExpVec = vec![0,0,2];
         let mult_idx = hash_table.insert(mult);
 
@@ -523,8 +521,6 @@ mod tests {
         vec![vec![0,0,1], vec![0,0,0]]];
         let mut hash_table = HashTable::new(&exps);
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
-
-        let mut matrix = Matrix::new();
 
         let mult: ExpVec = vec![0,0,2];
         let mult_idx = hash_table.insert(mult);
