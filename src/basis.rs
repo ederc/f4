@@ -99,14 +99,14 @@ impl Basis {
     pub fn update_data(&mut self, hash_table: &HashTable) {
         // assumes that the last new element added to the
         // basis is the one of largest degree
-        debug_assert!((self.previous_length..self.elements.len()).collect::<Vec<BasisLength>>()
+        debug_assert!((self.previous_length..(self.elements.len() as BasisLength)).collect::<Vec<BasisLength>>()
                 .windows(2)
-                .all(|x| hash_table.degrees[self.elements[x[0]].monomials[0] as usize]
-                    <= hash_table.degrees[self.elements[x[1]].monomials[0] as usize]));
+                .all(|x| hash_table.degrees[self.elements[x[0] as usize].monomials[0] as usize]
+                    <= hash_table.degrees[self.elements[x[1] as usize].monomials[0] as usize]));
 
         // check for constant
         if hash_table.degrees[
-            self.elements[self.previous_length].monomials[0] as usize] == 0 {
+            self.elements[self.previous_length as usize].monomials[0] as usize] == 0 {
             self.is_constant = true;
         }
 
@@ -117,7 +117,7 @@ impl Basis {
                 self.elements.len()-1].monomials[0] as usize]);
 
         // check redundancy due to resp. of new basis elements
-        for i in self.previous_length..self.elements.len() {
+        for i in (self.previous_length as usize)..self.elements.len() {
             for j in 0..i {
                 if !self.elements[j].is_redundant
                     && hash_table.divides(
@@ -126,7 +126,7 @@ impl Basis {
                         self.elements[j].is_redundant = true;
                 }
             }
-            for j in self.previous_length..i {
+            for j in (self.previous_length as usize)..i {
                 if !self.elements[j].is_redundant
                     && hash_table.divides(
                         self.elements[j].monomials[0],
@@ -138,7 +138,7 @@ impl Basis {
         }
 
         // update range for newly added elements
-        self.previous_length = self.elements.len();
+        self.previous_length = self.elements.len() as BasisLength;
     }
 
     pub fn is_constant(&self) -> bool {

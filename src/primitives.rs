@@ -15,7 +15,7 @@ pub type CoeffVec = Vec<Coefficient>;
 
 // Basis stuff
 pub type Degree = u32;
-pub type BasisLength = usize;
+pub type BasisLength = u32;
 
 // Matrix stuff
 pub type DenseRowCoefficient = i64;

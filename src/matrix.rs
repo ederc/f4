@@ -3,12 +3,6 @@ use std::io::Write;
 use std::io::stdout;
 use rayon::prelude::*;
 
-use std::time::{
-    Duration,
-    Instant,
-};
-
-
 use crate::arithmetic::i32::{
     modular_inverse,
 };
@@ -67,7 +61,6 @@ impl Matrix {
             next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
         stdout().flush().unwrap();
         let mut start = 0;
-        let mut rd_oa_time = Duration::new(0,0);
         let mut gens = HashSet::new();
         while start < next_pairs.len()  {
             let first_generator = next_pairs[start].generators.1;
@@ -88,21 +81,19 @@ impl Matrix {
             }
             debug_assert!(gens.len() > 0);
             let mult_idx = hash_table.get_difference(
-                lcm, basis.elements[first_generator].monomials[0]);
+                lcm, basis.elements[first_generator as usize].monomials[0]);
             self.columns.push(lcm);
             self.add_pivot(first_generator, mult_idx, basis, hash_table);
 
+            gens.remove(&first_generator);
             for g in &gens {
-            let rd_time = Instant::now();
                 let mult_idx = hash_table.get_difference(
-                    lcm, basis.elements[*g].monomials[0]);
+                    lcm, basis.elements[*g as usize].monomials[0]);
                 self.add_todo(*g, mult_idx, basis, hash_table);
-            rd_oa_time += rd_time.elapsed();
             }
             start = stop;
             gens.clear();
         }
-        println!("hs {:13.3} sec ", rd_oa_time.as_secs_f64());
     }
 
     fn add_pivot(&mut self,
@@ -226,9 +217,7 @@ impl Matrix {
     pub fn preprocessing(&mut self, basis: &Basis,
         pairs: &mut PairSet, hash_table: &mut HashTable) {
 
-        let rd_time = Instant::now();
         self.get_next_bunch_of_pairs(basis, pairs, hash_table);
-        println!("{:13.3} sec ", rd_time.elapsed().as_secs_f64());
         self.get_reducers(basis, hash_table);
         self.convert_hashes_to_columns(hash_table);
         self.pivots.sort_by(|a,b| b.columns[0].cmp(&a.columns[0]));
@@ -239,7 +228,7 @@ impl Matrix {
         let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
         let reducer = &self.pivots[self.pivot_lookup[col_idx]];
         let reducer_coefficients =
-            &basis.elements[reducer.basis_index].coefficients;
+            &basis.elements[reducer.basis_index as usize].coefficients;
         let reducer_columns = &reducer.columns;
         debug_assert!(
             reducer_columns.len() == reducer_coefficients.len());
@@ -260,7 +249,7 @@ impl Matrix {
 
         let pivot_idx = self.pivot_lookup[col_idx];
         self.pivots[pivot_idx].columns = cols;
-        basis.elements[self.pivots[pivot_idx].basis_index].coefficients = cfs;
+        basis.elements[self.pivots[pivot_idx].basis_index as usize].coefficients = cfs;
     }
 
     fn add_new_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
@@ -270,7 +259,7 @@ impl Matrix {
 
         self.pivots.push(
             Row {
-                basis_index: basis.elements.len(),
+                basis_index: basis.elements.len() as BasisLength,
                 columns: cols,});
         self.pivot_lookup[col_idx] = self.pivots.len()-1;
         basis.elements.push(
@@ -285,7 +274,7 @@ impl Matrix {
         let row = &self.todo[idx];
         let mut dense_row: DenseRow = vec!(0; self.columns.len());
 
-        let cfs = &basis.elements[row.basis_index].coefficients;
+        let cfs = &basis.elements[row.basis_index as usize].coefficients;
         debug_assert!(cfs.len() == row.columns.len());
 
         let characteristic = basis.characteristic as DenseRowCoefficient;
@@ -323,7 +312,7 @@ impl Matrix {
         let row = &self.pivots[idx];
         let mut dense_row: DenseRow = vec!(0; self.columns.len());
 
-        let cfs = &basis.elements[row.basis_index].coefficients;
+        let cfs = &basis.elements[row.basis_index as usize].coefficients;
         debug_assert!(cfs.len() == row.columns.len());
 
         let characteristic = basis.characteristic as DenseRowCoefficient;
@@ -352,7 +341,7 @@ impl Matrix {
     pub fn reduce(&mut self, basis: &mut Basis) {
 
         // set previous basis length before adding new elements / pivots
-        basis.previous_length = basis.elements.len();
+        basis.previous_length = basis.elements.len() as BasisLength;
 
         // println!("reducers for this matrix");
         // for p in &self.pivots {
@@ -391,9 +380,9 @@ impl Matrix {
 
         // copy monomial data for new elements to basis
         self.pivots[self.nr_known_pivots..].iter().for_each(|a|
-            basis.elements[a.basis_index].monomials = a.columns.clone());
+            basis.elements[a.basis_index as usize].monomials = a.columns.clone());
 
-        basis.elements[basis.previous_length..]
+        basis.elements[(basis.previous_length as usize)..]
             .sort_by(|a,b| hash_table.cmp_monomials_by_drl(b.monomials[0], a.monomials[0]));
     }
 }

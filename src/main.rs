@@ -46,7 +46,7 @@ fn main() {
     println!("----------------------------------------------------------------------------------------------");
     loop {
         let rd_time = Instant::now();
-        if basis.previous_length < basis.elements.len() {
+        if (basis.previous_length as usize) < basis.elements.len() {
             let up_time = Instant::now();
             pairs.update(&mut basis, &mut hash_table);
             basis.update_data(&hash_table);
@@ -58,7 +58,6 @@ fn main() {
         let mut matrix = Matrix::new();
         let pre_time = Instant::now();
         matrix.preprocessing(&basis, &mut pairs, &mut hash_table);
-        println!("{:13.3} sec ", pre_time.elapsed().as_secs_f64());
         pre_overall_time += pre_time.elapsed();
         let la_time = Instant::now();
         matrix.reduce(&mut basis);

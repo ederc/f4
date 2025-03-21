@@ -51,11 +51,11 @@ impl PairSet {
         basis: &Basis,
         hash_table: &mut HashTable
     ) {
-        for (i,e) in basis.elements[basis.previous_length..]
+        for (i,e) in basis.elements[(basis.previous_length as usize)..]
         .iter().enumerate() {
             // generate new pairs with basis element e
             // println!("lm -> {:?}", hash_table.monomials[e.monomials[0] as usize].exponents);
-            let mut new_pairs: PairVec = basis.elements[..i+basis.previous_length]
+            let mut new_pairs: PairVec = basis.elements[..i+(basis.previous_length as usize)]
                 .iter().enumerate().map(|(j,f)|
                     Pair {
                         criterion: if hash_table.are_monomials_coprime(
@@ -63,14 +63,14 @@ impl PairSet {
                         { Criterion::Product } else if f.is_redundant { Criterion::Chain}
                         else { Criterion::Keep },
                         lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
-                        generators: (i+basis.previous_length, j),
+                        generators: ((i as BasisLength)+basis.previous_length, j as BasisLength),
                     }).collect();
 
             // Gebauer-Möller: testing old pairs
             for p in &mut self.list {
                 let deg_p = hash_table.degrees[p.lcm as usize];
-                if deg_p > hash_table.degrees[new_pairs[p.generators.0].lcm as usize]
-                    && deg_p > hash_table.degrees[new_pairs[p.generators.1].lcm as usize]
+                if deg_p > hash_table.degrees[new_pairs[p.generators.0 as usize].lcm as usize]
+                    && deg_p > hash_table.degrees[new_pairs[p.generators.1 as usize].lcm as usize]
                     && hash_table.divides(e.monomials[0], p.lcm) {
                         p.criterion = Criterion::Chain;
                 }

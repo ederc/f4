@@ -40,7 +40,7 @@ impl HashTable {
             divisor_masks  : vec![0; INITIAL_HASH_TABLE_SIZE],
             last_known_divisors : vec![0; INITIAL_HASH_TABLE_SIZE],
             values         : vec![0; INITIAL_HASH_TABLE_SIZE],
-            map            : vec![HashTableLength::MAX; INITIAL_HASH_TABLE_SIZE],
+            map            : vec![HashTableLength::MAX; 2*INITIAL_HASH_TABLE_SIZE],
             divisor_bounds : Vec::new(),
             indices        : vec![0; INITIAL_HASH_TABLE_SIZE],
             nr_variables   : initial_exponents[0][0].len(),
@@ -109,6 +109,7 @@ impl HashTable {
             seed = self.update_seed(seed);
             self.random_seed.push(seed);
         }
+        self.random_seed.reverse();
     }
 
     // The divisor mask template is generated once the
@@ -164,11 +165,12 @@ impl HashTable {
         -> Option<(BasisLength, HashTableLength)> {
 
         let start_idx = self.last_known_divisors[mon as usize];
-        for (bi, be) in basis.elements[start_idx..].iter().enumerate() {
+        for (bi, be) in basis.elements[(start_idx as usize)..].iter().enumerate() {
             if !be.is_redundant && self.divides(be.monomials[0], mon) {
-                self.last_known_divisors[mon as usize] = bi + start_idx;
+                let div_idx = bi as BasisLength + start_idx;
+                self.last_known_divisors[mon as usize] = div_idx;
                 self.indices[mon as usize] = 2;
-                return Some((bi+start_idx, self.get_difference(mon, be.monomials[0])));
+                return Some((div_idx, self.get_difference(mon, be.monomials[0])));
             }
         }
         return None;
@@ -177,11 +179,10 @@ impl HashTable {
     pub fn generate_multiplied_monomials(&mut self, divisor_idx: BasisLength,
         mult_idx: HashTableLength, basis: &Basis) -> MonomVec {
 
-        let mons = &basis.elements[divisor_idx].monomials;
+        let mons = &basis.elements[divisor_idx as usize].monomials;
         let mut mult_mons: MonomVec = vec!(0; mons.len());
         for (idx, m) in mons.iter().enumerate() {
             let e_mon = &self.exponents[*m as usize];
-            let e_mult = &self.exponents[mult_idx as usize];
             let e_mult = &self.exponents[mult_idx as usize];
             let mut exps: ExpVec = vec!(0; self.nr_variables);
             for ((e, mu), mo) in exps.iter_mut().zip(e_mult).zip(e_mon) {
@@ -233,21 +234,23 @@ impl HashTable {
     }
 
     fn enlarge(&mut self) {
+        let previous_length = self.length;
         self.length *= 2;
-        self.map = vec![HashTableLength::MAX; self.length];
+        self.map = vec![HashTableLength::MAX; 2*self.length];
         self.degrees.resize(self.length, 0);
         self.divisor_masks.resize(self.length, 0);
         self.last_known_divisors.resize(self.length, 0);
         self.values.resize(self.length, 0);
         self.indices.resize(self.length, 0);
 
+        let map_len = self.map.len();
         // reinsert elements
-        let div = (self.length - 1) as HashTableLength;
+        let div = (map_len - 1) as HashTableLength;
 
-        for i in 0..self.exponents.len() {
+        for i in 0..previous_length {
             let h = self.values[i];
             let mut k = h;
-            for j in 0..self.length {
+            for j in 0..map_len {
                 k = (k+j as HashTableLength) & div;
                 if self.map[k as usize] == HashTableLength::MAX {
                     self.map[k as usize] = i as HashTableLength;
@@ -259,14 +262,14 @@ impl HashTable {
 
     #[inline(always)]
     pub fn insert(&mut self, exp: ExpVec) -> HashTableLength {
-        let div = (self.length - 1) as HashTableLength;
+        let div = (self.map.len() - 1) as HashTableLength;
         let h = self.get_hash(&exp);
         let exp_len = self.exponents.len() as HashTableLength;
         let mut k = h;
         // let mut i = 0 as HashTableLength;
-        let map_len = self.length;
+        let map_len = self.map.len();
         for  i in 0.. map_len {
-            k = (h+i as u32) & div;
+            k = (k+i as HashTableLength) & div;
             let hm = self.map[k as usize];
             if hm > exp_len {
                 break;
