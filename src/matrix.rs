@@ -440,9 +440,7 @@ mod tests {
         vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
         vec![vec![0,0,1], vec![0,0,0]]];
         let mut hash_table = HashTable::new(&exps);
-        let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
-
-        let mut matrix = Matrix::new();
+        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
         let mult: ExpVec = vec![0,0,2];
         let mult_idx = hash_table.insert(mult);
@@ -615,7 +613,7 @@ mod tests {
 
         matrix.add_todo(0, mult_idx, &basis, &mut hash_table);
         assert_eq!(matrix.todo[0].basis_index, 0);
-        assert_eq!(matrix.todo[0].columns, [0,7]);
+        assert_eq!(matrix.todo[0].columns, [1,8]);
     }
 
     #[test]
@@ -635,7 +633,7 @@ mod tests {
 
         matrix.add_pivot(0, mult_idx, &basis, &mut hash_table);
         assert_eq!(matrix.pivots[0].basis_index, 0);
-        assert_eq!(matrix.pivots[0].columns, [0,7]);
+        assert_eq!(matrix.pivots[0].columns, [1,8]);
     }
 
     #[test]
@@ -658,9 +656,9 @@ mod tests {
 
         assert_eq!(matrix.todo.len(), 1);
         assert_eq!(matrix.todo[0].basis_index, 1);
-        assert_eq!(matrix.todo[0].columns, [3,4]);
+        assert_eq!(matrix.todo[0].columns, [4,5]);
         assert_eq!(matrix.pivots.len(), 1);
         assert_eq!(matrix.pivots[0].basis_index, 0);
-        assert_eq!(matrix.pivots[0].columns, [3,5]);
+        assert_eq!(matrix.pivots[0].columns, [4,6]);
     }
 }
