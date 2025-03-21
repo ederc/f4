@@ -510,7 +510,7 @@ mod tests {
         assert_eq!(matrix.pivots[0].columns, [0,7]);
         assert_eq!(matrix.pivots[0].basis_index, 0);
         assert_eq!(
-            basis.elements[matrix.pivots[0].basis_index].coefficients,
+            basis.elements[matrix.pivots[0].basis_index as usize].coefficients,
             [1,21840]);
     }
     #[test]
@@ -540,7 +540,7 @@ mod tests {
         assert_eq!(matrix.pivots.len(), 7);
         assert_eq!(matrix.pivots[6].columns, [4,7]);
         assert_eq!(matrix.pivots[6].basis_index, 4);
-        assert_eq!(basis.elements[matrix.pivots[6].basis_index].coefficients, [1,43681]);
+        assert_eq!(basis.elements[matrix.pivots[6].basis_index as usize].coefficients, [1,43681]);
     }
     #[test]
     fn test_convert_hashes_to_columns() {

@@ -172,7 +172,7 @@ mod tests {
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         assert_eq!(basis.previous_length, 0);
         basis.update_data(&hash_table);
-        assert_eq!(basis.previous_length, basis.elements.len());
+        assert_eq!(basis.previous_length as usize, basis.elements.len());
         assert_eq!(basis.maximum_total_degree, 3);
         assert_eq!(basis.is_constant, true);
     }

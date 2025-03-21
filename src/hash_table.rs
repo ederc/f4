@@ -109,7 +109,7 @@ impl HashTable {
             seed = self.update_seed(seed);
             self.random_seed.push(seed);
         }
-        self.random_seed.reverse();
+        // self.random_seed.reverse();
     }
 
     // The divisor mask template is generated once the
@@ -315,11 +315,11 @@ mod tests {
         let mut ht = HashTable::new(&exp);
         assert_eq!(ht.exponents.len(), 0);
         assert_eq!(ht.indices.len(), INITIAL_HASH_TABLE_SIZE);
-        assert_eq!(ht.map.len(), INITIAL_HASH_TABLE_SIZE);
+        assert_eq!(ht.map.len(), 2*INITIAL_HASH_TABLE_SIZE);
         assert_eq!(ht.values.len(), INITIAL_HASH_TABLE_SIZE);
         ht.enlarge();
         assert_eq!(ht.indices.len(), 2*INITIAL_HASH_TABLE_SIZE);
-        assert_eq!(ht.map.len(), 2*INITIAL_HASH_TABLE_SIZE);
+        assert_eq!(ht.map.len(), 4*INITIAL_HASH_TABLE_SIZE);
         assert_eq!(ht.values.len(), 2*INITIAL_HASH_TABLE_SIZE);
         assert_eq!(ht.indices.iter().all(|a| *a == 0), true);
         assert_eq!(ht.values.iter().all(|a| *a == 0), true);
