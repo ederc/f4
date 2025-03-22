@@ -451,7 +451,7 @@ mod tests {
         matrix.add_todo(3, mult_idx, &basis, &mut hash_table);
         matrix.get_reducers(&basis, &mut hash_table);
         matrix.convert_hashes_to_columns(&mut hash_table);
-        println!("collen {}", self.columns.len());
+        assert_eq!(matrix.columns.len(), 8);
         matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
         matrix.link_pivots_to_columns();
         matrix.get_density();
@@ -656,6 +656,7 @@ mod tests {
 
         matrix.get_next_bunch_of_pairs(&basis, &mut pairs, &mut hash_table);
 
+        assert_eq!(matrix.columns.len(), 1);
         assert_eq!(matrix.todo.len(), 1);
         assert_eq!(matrix.todo[0].basis_index, 1);
         assert_eq!(matrix.todo[0].columns, [4,5]);
