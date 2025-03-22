@@ -82,7 +82,6 @@ impl Matrix {
             debug_assert!(gens.len() > 0);
             let mult_idx = hash_table.get_difference(
                 lcm, basis.elements[first_generator as usize].monomials[0]);
-            self.columns.push(lcm);
             self.add_pivot(first_generator, mult_idx, basis, hash_table);
 
             gens.remove(&first_generator);
@@ -452,6 +451,7 @@ mod tests {
         matrix.add_todo(3, mult_idx, &basis, &mut hash_table);
         matrix.get_reducers(&basis, &mut hash_table);
         matrix.convert_hashes_to_columns(&mut hash_table);
+        println!("collen {}", self.columns.len());
         matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
         matrix.link_pivots_to_columns();
         matrix.get_density();
