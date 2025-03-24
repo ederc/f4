@@ -119,38 +119,34 @@ impl Matrix {
 
         let mut i = 0;
         while i < self.todo.len() {
-            for j in 0..self.todo[i].columns.len() {
-                if hash_table.indices[self.todo[i].columns[j] as usize] == 0 {
-                    hash_table.indices[self.todo[i].columns[j] as usize] = 1;
-                    self.columns.push(self.todo[i].columns[j]);
-                    match hash_table.find_divisor(self.todo[i].columns[j], basis) {
-                        Some((divisor_idx, multiplier)) =>
-                            self.add_pivot(divisor_idx, multiplier, basis, hash_table),
-                        None => continue,
-                    }
+            let columns: Vec<_> = self.todo[i].columns.iter()
+                .filter(|&c| hash_table.indices[*c as usize] == 0).cloned().collect();
+            for c in columns {
+                hash_table.indices[c as usize] = 1;
+                self.columns.push(c);
+                match hash_table.find_divisor(c, basis) {
+                    Some((divisor_idx, multiplier)) =>
+                        self.add_pivot(divisor_idx, multiplier, basis, hash_table),
+                    None => continue,
                 }
             }
             i += 1;
         }
         i = 0;
         while i < self.pivots.len() {
-            for j in 0..self.pivots[i].columns.len() {
-                if hash_table.indices[self.pivots[i].columns[j] as usize] == 0 {
-                    hash_table.indices[self.pivots[i].columns[j] as usize] = 1;
-                    self.columns.push(self.pivots[i].columns[j]);
-                    match hash_table.find_divisor(self.pivots[i].columns[j], basis) {
-                        Some((divisor_idx, multiplier)) =>
-                            self.add_pivot(divisor_idx, multiplier, basis, hash_table),
-                        None => continue,
-                    }
+            let columns: Vec<_> = self.pivots[i].columns.iter()
+                .filter(|&c| hash_table.indices[*c as usize] == 0).cloned().collect();
+            for c in columns {
+                hash_table.indices[c as usize] = 1;
+                self.columns.push(c);
+                match hash_table.find_divisor(c, basis) {
+                    Some((divisor_idx, multiplier)) =>
+                        self.add_pivot(divisor_idx, multiplier, basis, hash_table),
+                    None => continue,
                 }
             }
             i += 1;
         }
-        // for p in &self.pivots {
-        //     println!("reducer {} with lm {:?}", p.basis_index,
-        //         hash_table.monomials[p.columns[0]].exponents);
-        // }
     }
 
     fn convert_hashes_to_columns(&mut self, hash_table: &mut HashTable) {
