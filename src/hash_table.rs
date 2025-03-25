@@ -134,9 +134,6 @@ impl HashTable {
         }
         println!("bpv {}", self.divisor_mask_bits_per_variable);
         println!("dvr {}", self.divisor_mask_variable_range);
-        let length_divmask = min(
-            self.nr_variables, usize::BITS.try_into().unwrap());
-
         for i in 0..self.divisor_mask_variable_range {
             let mut max = initial_exponents[0][0][i];
             let mut min = initial_exponents[0][0][i];
