@@ -327,11 +327,7 @@ impl HashTable {
 }
 
 fn get_degree(exp: &ExpVec) -> Degree {
-    let mut deg: Degree = 0;
-    for e in exp {
-        deg += *e as Degree;
-    }
-    return deg;
+    return exp.iter().fold(0, |acc, x| acc.wrapping_add(*x as Degree));
 }
 
 #[cfg(test)]
