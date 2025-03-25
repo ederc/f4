@@ -432,7 +432,10 @@ mod tests {
             vec![1,1,3],
             vec![2,0,3]));
         let ht = HashTable::new(&exps);
-        assert_eq!(ht.divisor_bounds, [1,1,0]);
+        assert_eq!(ht.divisor_bounds,
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+             1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+             1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     }
     #[test]
     fn test_get_divisor_mask() {
