@@ -71,7 +71,7 @@ impl PairSet {
                 let deg_p = hash_table.degrees[p.lcm as usize];
                 if deg_p > hash_table.degrees[new_pairs[p.generators.0 as usize].lcm as usize]
                     && deg_p > hash_table.degrees[new_pairs[p.generators.1 as usize].lcm as usize]
-                    && hash_table.divides(e.monomials[0], p.lcm) {
+                    && hash_table.divides_pairs(e.monomials[0], p.lcm) {
                         p.criterion = Criterion::Chain;
                 }
             }
@@ -84,7 +84,7 @@ impl PairSet {
                     for j in 0..i {
                         if new_pairs[j].criterion != Criterion::Chain
                             && new_pairs[j].lcm != new_pairs[i].lcm
-                            && hash_table.divides(new_pairs[j].lcm, new_pairs[i].lcm) {
+                            && hash_table.divides_pairs(new_pairs[j].lcm, new_pairs[i].lcm) {
                                 new_pairs[i].criterion = Criterion::Chain;
                                 break;
                         }

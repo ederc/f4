@@ -14,7 +14,7 @@ const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 
 pub struct HashTable {
     pub degrees      : Vec<Degree>,
-    divisor_masks    : Vec<DivisorMask>,
+    pub divisor_masks: Vec<DivisorMask>,
     last_known_divisors: Vec<BasisLength>,
     pub exponents    : Vec<ExpVec>,
     random_seed      : Vec<HashValue>,
@@ -170,42 +170,49 @@ impl HashTable {
         return divisor_mask;
     }
 
-    // fn get_divisor_mask(&mut self, exp: &ExpVec) -> DivisorMask {
-    //     let divisor_bounds = &self.divisor_bounds;
-    //     let mut divisor_mask: DivisorMask = 0;
-    //     let min_len = min(exp.len(), divisor_bounds.len());
-    //     for i in 0..min_len {
-    //         if exp[i] >= divisor_bounds[i] {
-    //             divisor_mask |= 1 << i;
-    //         }
-    //     }
-    //     return divisor_mask;
-    // }
-
     // Tests if monomial ma divides monomial mb
-    pub fn divides(&self, ma: HashTableLength, mb: HashTableLength) -> bool {
+    pub fn divides_pairs(&self, ma: HashTableLength, mb: HashTableLength) -> bool {
         if (self.divisor_masks[ma as usize] & !self.divisor_masks[mb as usize]) != 0 {
             return false;
         }
         let ea = &self.exponents[ma as usize];
         let eb = &self.exponents[mb as usize];
-        if ea.into_iter().zip(eb).any(|(a,b)| a > b) {
-            return false;
-        }  else {
+        if ea.into_iter().zip(eb).all(|(a,b)| *a <= *b) {
             return true;
+        }  else {
+            return false;
         }
     }
 
-    pub fn find_divisor(&mut self, mon: HashTableLength, basis: &Basis)
+    pub fn divides(&self, ma: HashTableLength, dma: DivisorMask, mb: HashTableLength, ndmb: DivisorMask) -> bool {
+        if (dma & ndmb) != 0 {
+            return false;
+        }
+        let ea = &self.exponents[ma as usize];
+        let eb = &self.exponents[mb as usize];
+        if ea.into_iter().zip(eb).all(|(a,b)| *a <= *b) {
+            return true;
+        }  else {
+            return false;
+        }
+    }
+
+    pub fn find_divisor(&mut self, mon: HashTableLength,
+            divsv: &Vec<(DivisorMask,HashTableLength,BasisLength)>)
         -> Option<(BasisLength, HashTableLength)> {
 
+        let divs = divsv.as_slice();
         let start_idx = self.last_known_divisors[mon as usize];
-        for (bi, be) in basis.elements[(start_idx as usize)..].iter().enumerate() {
-            if !be.is_redundant && self.divides(be.monomials[0], mon) {
-                let div_idx = bi as BasisLength + start_idx;
-                self.last_known_divisors[mon as usize] = div_idx;
-                self.indices[mon as usize] = 2;
-                return Some((div_idx, self.get_difference(mon, be.monomials[0])));
+        let ndmon = !self.divisor_masks[mon as usize];
+        let mut j = 0;
+        while divs[j].2 < start_idx {
+            j += 1;
+        }
+        for i in j..divs.len() {
+            let d = divs[i];
+            if self.divides(d.1, d.0, mon, ndmon) {
+                self.last_known_divisors[mon as usize] = d.2;
+                return Some((d.2, self.get_difference(mon, d.1)));
             }
         }
         return None;
@@ -297,13 +304,13 @@ impl HashTable {
         let h = self.get_hash(&exp);
         let mut k = h;
         let map_len = self.map.len();
-        for  i in 0.. map_len {
+        for  i in 0..map_len {
             k = (k+i as HashTableLength) & div;
             let hm = self.map[k as usize];
             if hm == 0 {
                 break;
             }
-            if self.values[hm as usize] != h || self.exponents[hm as usize] != exp {
+            if self.values[hm as usize]!= h || self.exponents[hm as usize] != exp {
                 continue;
             }
             return hm;
@@ -415,10 +422,19 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mon1 = hash_table.insert(vec![0 as Exponent,4]);
-        assert_eq!(hash_table.find_divisor(mon1, &basis), Some((1, 5)));
+        let mut divs: Vec<(DivisorMask,HashTableLength,BasisLength)> = Vec::new();
+        for i in 0..basis.elements.len() {
+            if basis.elements[i].is_redundant == false {
+                divs.push((
+                    hash_table.divisor_masks[basis.elements[i].monomials[0] as usize],
+                    basis.elements[i].monomials[0],
+                    i as BasisLength));
+            }
+        }
+        assert_eq!(hash_table.find_divisor(mon1, &divs), Some((1, 5)));
         assert_eq!(hash_table.exponents[5], [0,1]);
         let mon2 = hash_table.insert(vec![5 as Exponent,0]);
-        assert_eq!(hash_table.find_divisor(mon2, &basis), None);
+        assert_eq!(hash_table.find_divisor(mon2, &divs), None);
     }
     #[test]
     fn test_generate_divisor_bounds() {
@@ -455,12 +471,26 @@ mod tests {
     fn test_divides() {
         let exps: Vec<Vec<ExpVec>> = vec!(vec!(vec![1,1,3], vec![2,0,3]));
         let mut ht = HashTable::new(&exps);
+        let ma  = ht.insert(exps[0][0].clone());
+        let dma = ht.divisor_masks[ma as usize];
+        let mb  = ht.insert(vec![1,2,3]);
+        let dmb = ht.divisor_masks[mb as usize];
+        let mc  = ht.insert(vec![3,0,4]);
+        let dmc = ht.divisor_masks[mc as usize];
+        assert_eq!(ht.divides(ma, dma, mb, !dmb), true);
+        assert_eq!(ht.divides(ma, dma, mc, !dmc), false);
+        assert_eq!(ht.divides(ma, dma, ma, !dma), true);
+    }
+    #[test]
+    fn test_divides_pairs() {
+        let exps: Vec<Vec<ExpVec>> = vec!(vec!(vec![1,1,3], vec![2,0,3]));
+        let mut ht = HashTable::new(&exps);
         let ma = ht.insert(exps[0][0].clone());
         let mb = ht.insert(vec![1,2,3]);
         let mc = ht.insert(vec![3,0,4]);
-        assert_eq!(ht.divides(ma, mb), true);
-        assert_eq!(ht.divides(ma, mc), false);
-        assert_eq!(ht.divides(ma, ma), true);
+        assert_eq!(ht.divides_pairs(ma, mb), true);
+        assert_eq!(ht.divides_pairs(ma, mc), false);
+        assert_eq!(ht.divides_pairs(ma, ma), true);
     }
     #[test]
     #[should_panic]

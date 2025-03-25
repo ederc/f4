@@ -120,7 +120,7 @@ impl Basis {
         for i in (self.previous_length as usize)..self.elements.len() {
             for j in 0..i {
                 if !self.elements[j].is_redundant
-                    && hash_table.divides(
+                    && hash_table.divides_pairs(
                         self.elements[i].monomials[0],
                         self.elements[j].monomials[0]) {
                         self.elements[j].is_redundant = true;
@@ -128,7 +128,7 @@ impl Basis {
             }
             for j in (self.previous_length as usize)..i {
                 if !self.elements[j].is_redundant
-                    && hash_table.divides(
+                    && hash_table.divides_pairs(
                         self.elements[j].monomials[0],
                         self.elements[i].monomials[0]) {
                         self.elements[i].is_redundant = true;
