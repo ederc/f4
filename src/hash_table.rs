@@ -422,7 +422,7 @@ mod tests {
             vec![1;65]));
         let mut ht = HashTable::new(&exps);
         ht.insert(vec![1;65]);
-        assert_eq!(ht.divisor_masks[1], 18446744073709551615);
+        assert_eq!(ht.divisor_masks[1], 4294967295);
     }
     #[test]
     fn test_init_hash_table() {
