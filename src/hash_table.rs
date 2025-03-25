@@ -25,6 +25,8 @@ pub struct HashTable {
     pub indices      : Vec<HashTableLength>,
     pub nr_variables : usize,
     length           : usize,
+    divisor_mask_bits_per_variable: usize,
+    divisor_mask_variable_range: usize,
 }
 
 
@@ -45,6 +47,8 @@ impl HashTable {
             indices        : vec![0; INITIAL_HASH_TABLE_SIZE],
             nr_variables   : initial_exponents[0][0].len(),
             length         : INITIAL_HASH_TABLE_SIZE,
+            divisor_mask_bits_per_variable: 0,
+            divisor_mask_variable_range: 0,
         };
         ht.exponents.push(vec!(0; ht.nr_variables));
         // let ev: ExpVec = vec!(0; INITIAL_HASH_TABLE_SIZE * ht.nr_variables);
@@ -118,10 +122,22 @@ impl HashTable {
     // TODO: Opptimize the divisor mask: If #variables < usize::BITS we leave
     // a part of the divisor mask 0 and do not use it.
     fn generate_divisor_bounds(&mut self, initial_exponents: &Vec<Vec<ExpVec>>) {
+        let bits_for_divisor_mask:usize =  DivisorMask::BITS.try_into().unwrap();
+        self.divisor_mask_bits_per_variable = bits_for_divisor_mask / self.nr_variables;
+        if self.divisor_mask_bits_per_variable == 0 {
+            self.divisor_mask_bits_per_variable = 1;
+        }
+        if self.nr_variables < bits_for_divisor_mask {
+            self.divisor_mask_variable_range = self.nr_variables;
+        } else {
+            self.divisor_mask_variable_range = bits_for_divisor_mask;
+        }
+        println!("bpv {}", self.divisor_mask_bits_per_variable);
+        println!("dvr {}", self.divisor_mask_variable_range);
         let length_divmask = min(
             self.nr_variables, usize::BITS.try_into().unwrap());
 
-        for i in 0..length_divmask {
+        for i in 0..self.divisor_mask_variable_range {
             let mut max = initial_exponents[0][0][i];
             let mut min = initial_exponents[0][0][i];
             for e in initial_exponents.into_iter().flatten() {

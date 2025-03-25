@@ -5,7 +5,7 @@ pub type ExpVec = Vec<Exponent>;
 // Hash table stuff
 pub type HashValue = u32;
 pub type HashTableLength = u32;
-pub type DivisorMask = usize;
+pub type DivisorMask = u32;
 pub type MonomVec = Vec<HashTableLength>;
 
 // Field stuff
