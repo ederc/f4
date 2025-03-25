@@ -230,11 +230,11 @@ impl HashTable {
 
     #[inline(always)]
     fn get_hash(&self, exp: &ExpVec) -> HashValue {
-        let mut h: HashValue = 0;
-        for i in 0..exp.len() {
-            h = h.wrapping_add((exp[i] as HashValue).wrapping_mul(self.random_seed[i]));
-        }
-        return h;
+        // let mut h: HashValue = 0;
+        return exp.iter().zip(&self.random_seed).map(|(e,r) | (*e as HashValue).wrapping_mul(*r)).sum();
+        // for i in 0..exp.len() {
+        //     h = h.wrapping_add((exp[i] as HashValue).wrapping_mul(self.random_seed[i]));
+        // }
     }
 
     pub fn cmp_monomials_by_degree(&self, a: HashTableLength, b:HashTableLength) -> Ordering {
