@@ -131,8 +131,7 @@ impl HashTable {
         } else {
             self.divisor_mask_variable_range = bits_for_divisor_mask;
         }
-        println!("bpv {}", self.divisor_mask_bits_per_variable);
-        println!("dvr {}", self.divisor_mask_variable_range);
+        self.divisor_bounds = vec!(0; self.divisor_mask_bits_per_variable*self.divisor_mask_variable_range);
         for i in 0..self.divisor_mask_variable_range {
             let mut max = initial_exponents[0][0][i];
             let mut min = initial_exponents[0][0][i];
@@ -148,8 +147,8 @@ impl HashTable {
             if ctr == 0 {
                 ctr = 1;
             }
-            for _j in 0..self.divisor_mask_bits_per_variable {
-                self.divisor_bounds.push(ctr);
+            for j in 0..self.divisor_mask_bits_per_variable {
+                self.divisor_bounds[i+self.divisor_mask_variable_range*j] = ctr;
                 ctr += 1;
             }
         }
@@ -158,15 +157,10 @@ impl HashTable {
     fn get_divisor_mask(&mut self, exp: &ExpVec) -> DivisorMask {
         let divisor_bounds = &self.divisor_bounds;
         let mut divisor_mask: DivisorMask = 0;
-        let mut ctr = 0;
-        for i in 0..self.divisor_mask_variable_range {
-            for _j in 0..self.divisor_mask_bits_per_variable {
-                if exp[i] >= divisor_bounds[ctr] {
-                    divisor_mask |= 1 << ctr;
-                }
-                ctr += 1;
-            }
-        }
+        let e = &exp[0..self.divisor_mask_variable_range];
+        e.into_iter().cycle()
+            .zip(divisor_bounds.into_iter().enumerate())
+            .for_each(|(e,(i,d))| { if *e >= *d { divisor_mask |= 1 << i;}} );
         return divisor_mask;
     }
 
@@ -443,9 +437,16 @@ mod tests {
             vec![2,0,3]));
         let ht = HashTable::new(&exps);
         assert_eq!(ht.divisor_bounds,
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-             1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-             1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+            [1, 1, 1,
+             2, 2, 2,
+             3, 3, 3,
+             4, 4, 4,
+             5, 5, 5,
+             6, 6, 6,
+             7, 7, 7,
+             8, 8, 8,
+             9, 9, 9,
+             10, 10, 10]);
     }
     #[test]
     fn test_get_divisor_mask() {
