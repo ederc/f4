@@ -118,10 +118,11 @@ impl Matrix {
     fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
 
         // get list of all lms and divmask
-        let mut divs: Vec<(DivisorMask,HashTableLength,BasisLength)> = Vec::new();
+        let mut divisor_data_vec: 
+            Vec<(DivisorMask,HashTableLength,BasisLength)> = Vec::new();
         for i in 0..basis.elements.len() {
             if basis.elements[i].is_redundant == false {
-                divs.push((
+                divisor_data_vec.push((
                     hash_table.divisor_masks[basis.elements[i].monomials[0] as usize],
                     basis.elements[i].monomials[0],
                     i as BasisLength));
@@ -135,7 +136,7 @@ impl Matrix {
             for c in columns {
                 hash_table.indices[c as usize] = 1;
                 self.columns.push(c);
-                match hash_table.find_divisor(c, &divs) {
+                match hash_table.find_divisor(c, &divisor_data_vec) {
                     Some((divisor_idx, multiplier)) =>
                         self.add_pivot(divisor_idx, multiplier, basis, hash_table),
                     None => continue,
@@ -150,7 +151,7 @@ impl Matrix {
             for c in columns {
                 hash_table.indices[c as usize] = 1;
                 self.columns.push(c);
-                match hash_table.find_divisor(c, &divs) {
+                match hash_table.find_divisor(c, &divisor_data_vec) {
                     Some((divisor_idx, multiplier)) =>
                         self.add_pivot(divisor_idx, multiplier, basis, hash_table),
                     None => continue,

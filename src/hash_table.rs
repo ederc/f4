@@ -184,8 +184,8 @@ impl HashTable {
         }
     }
 
-    pub fn divides(&self, ma: HashTableLength, dma: DivisorMask, mb: HashTableLength, ndmb: DivisorMask) -> bool {
-        if (dma & ndmb) != 0 {
+    pub fn divides(&self, ma: HashTableLength, dma: DivisorMask, mb: HashTableLength, neg_dmb: DivisorMask) -> bool {
+        if (dma & neg_dmb) != 0 {
             return false;
         }
         let ea = &self.exponents[ma as usize];
@@ -198,18 +198,18 @@ impl HashTable {
     }
 
     pub fn find_divisor(&mut self, mon: HashTableLength,
-            divsv: &Vec<(DivisorMask,HashTableLength,BasisLength)>)
+            divisor_data_vec: &Vec<(DivisorMask,HashTableLength,BasisLength)>)
         -> Option<(BasisLength, HashTableLength)> {
 
-        let divs = divsv.as_slice();
+        let divisor_data = divisor_data_vec.as_slice();
         let start_idx = self.last_known_divisors[mon as usize];
         let ndmon = !self.divisor_masks[mon as usize];
         let mut j = 0;
-        while divs[j].2 < start_idx {
+        while divisor_data[j].2 < start_idx {
             j += 1;
         }
-        for i in j..divs.len() {
-            let d = divs[i];
+        for i in j..divisor_data.len() {
+            let d = divisor_data[i];
             if self.divides(d.1, d.0, mon, ndmon) {
                 self.last_known_divisors[mon as usize] = d.2;
                 return Some((d.2, self.get_difference(mon, d.1)));
