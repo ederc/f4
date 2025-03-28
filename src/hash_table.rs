@@ -443,16 +443,11 @@ mod tests {
             vec![2,0,3]));
         let ht = HashTable::new(&exps);
         assert_eq!(ht.divisor_bounds,
-            [1, 1, 1,
-             2, 2, 2,
-             3, 3, 3,
-             4, 4, 4,
-             5, 5, 5,
-             6, 6, 6,
-             7, 7, 7,
-             8, 8, 8,
-             9, 9, 9,
-             10, 10, 10]);
+            [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5,
+             6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10,
+             11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14,
+             15, 15, 15, 16, 16, 16, 17, 17, 17, 18, 18, 18,
+             19, 19, 19, 20, 20, 20, 21, 21, 21]);
     }
     #[test]
     fn test_get_divisor_mask() {
@@ -460,7 +455,7 @@ mod tests {
             vec![1;65]));
         let mut ht = HashTable::new(&exps);
         ht.insert(vec![1;65]);
-        assert_eq!(ht.divisor_masks[1], 4294967295);
+        assert_eq!(ht.divisor_masks[1],18446744073709551615);
     }
     #[test]
     fn test_init_hash_table() {
