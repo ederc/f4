@@ -165,30 +165,27 @@ impl HashTable {
     }
 
     // Tests if monomial ma divides monomial mb
+    #[inline(always)]
     pub fn divides_pairs(&self, ma: HashTableLength, mb: HashTableLength) -> bool {
         if (self.divisor_masks[ma as usize] & !self.divisor_masks[mb as usize]) != 0 {
             return false;
         }
-        let ea = &self.exponents[ma as usize];
-        let eb = &self.exponents[mb as usize];
-        if ea.into_iter().zip(eb).all(|(a,b)| *a <= *b) {
-            return true;
-        }  else {
+        if self.degrees[ma as usize] > self.degrees[mb as usize] {
             return false;
         }
+        let ea = &self.exponents[ma as usize];
+        let eb = &self.exponents[mb as usize];
+        return ea.into_iter().zip(eb).all(|(&a,&b)| a <= b);
     }
 
+    #[inline(always)]
     pub fn divides(&self, ma: HashTableLength, dma: DivisorMask, mb: HashTableLength, neg_dmb: DivisorMask) -> bool {
         if (dma & neg_dmb) != 0 {
             return false;
         }
         let ea = &self.exponents[ma as usize];
         let eb = &self.exponents[mb as usize];
-        if ea.into_iter().zip(eb).all(|(a,b)| *a <= *b) {
-            return true;
-        }  else {
-            return false;
-        }
+        return ea.into_iter().zip(eb).all(|(a,b)| *a <= *b);
     }
 
     pub fn find_divisor(&mut self, mon: HashTableLength,
@@ -198,6 +195,15 @@ impl HashTable {
         let divisor_data = divisor_data_vec.as_slice();
         let start_idx = self.last_known_divisors[mon as usize];
         let ndmon = !self.divisor_masks[mon as usize];
+        if start_idx != 0 {
+        // println!("start_idx = {}", start_idx);
+        // println!("pos {:?}", divisor_data.iter().position(|&x| x.2 == start_idx));
+        match divisor_data.iter().position(|&x| x.2 == start_idx) {
+            Some(j) => return Some((divisor_data[j].2, self.get_difference(mon, divisor_data[j].1))),
+            None => (),
+        }
+        }
+        // println!("coming here?");
         let mut j = 0;
         while divisor_data[j].2 < start_idx {
             j += 1;
