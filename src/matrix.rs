@@ -128,36 +128,44 @@ impl Matrix {
                     i as BasisLength));
             }
         }
+        let mut new_pivot_data: Vec<(BasisLength, HashTableLength)> = Vec::new();
 
-        let mut i = 0;
-        while i < self.todo.len() {
-            let columns: Vec<_> = self.todo[i].columns.iter()
-                .filter(|&c| hash_table.indices[*c as usize] == 0).cloned().collect();
-            for c in columns {
-                hash_table.indices[c as usize] = 1;
-                self.columns.push(c);
-                match hash_table.find_divisor(c, &divisor_data_vec, &basis) {
-                    Some((divisor_idx, multiplier)) =>
-                        self.add_pivot(divisor_idx, multiplier, basis, hash_table),
-                    None => continue,
+        for todos in &self.todo {
+            for c in &todos.columns {
+                if hash_table.indices[*c as usize] == 0 {
+                    hash_table.indices[*c as usize] = 1;
+                    self.columns.push(*c);
+                    match hash_table.find_divisor(*c, &divisor_data_vec, &basis) {
+                        Some((divisor_idx, multiplier)) =>
+                            new_pivot_data.push((divisor_idx, multiplier)),
+                        None => continue,
+                    }
                 }
             }
-            i += 1;
         }
-        i = 0;
-        while i < self.pivots.len() {
-            let columns: Vec<_> = self.pivots[i].columns.iter()
-                .filter(|&c| hash_table.indices[*c as usize] == 0).cloned().collect();
-            for c in columns {
-                hash_table.indices[c as usize] = 1;
-                self.columns.push(c);
-                match hash_table.find_divisor(c, &divisor_data_vec, &basis) {
-                    Some((divisor_idx, multiplier)) =>
-                        self.add_pivot(divisor_idx, multiplier, basis, hash_table),
-                    None => continue,
+        for np in new_pivot_data {
+            self.add_pivot(np.0, np.1, basis, hash_table);
+        }
+        let mut curr_nr_pivs = 0;
+        while curr_nr_pivs < self.pivots.len() {
+            let mut new_pivot_data: Vec<(BasisLength, HashTableLength)> = Vec::new();
+            for pivots in &self.pivots[curr_nr_pivs..self.pivots.len()] {
+                for c in &pivots.columns {
+                    if hash_table.indices[*c as usize] == 0 {
+                        hash_table.indices[*c as usize] = 1;
+                        self.columns.push(*c);
+                        match hash_table.find_divisor(*c, &divisor_data_vec, &basis) {
+                            Some((divisor_idx, multiplier)) =>
+                                new_pivot_data.push((divisor_idx, multiplier)),
+                            None => continue,
+                        }
+                    }
                 }
             }
-            i += 1;
+            curr_nr_pivs = self.pivots.len();
+            for np in new_pivot_data {
+                self.add_pivot(np.0, np.1, basis, hash_table);
+            }
         }
     }
 
