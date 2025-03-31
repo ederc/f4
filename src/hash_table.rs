@@ -23,7 +23,7 @@ pub struct HashTable {
     divisor_bounds   : ExpVec,
     pub indices      : Vec<HashTableLength>,
     pub nr_variables : usize,
-    length           : usize,
+    pub length           : usize,
     divisor_mask_bits_per_variable: usize,
     divisor_mask_variable_range: usize,
 }
@@ -189,27 +189,18 @@ impl HashTable {
     }
 
     pub fn find_divisor(&mut self, mon: HashTableLength,
-            divisor_data_vec: &Vec<(DivisorMask,HashTableLength,BasisLength)>)
+            divisor_data_vec: &Vec<(DivisorMask,HashTableLength,BasisLength)>,basis: &Basis)
         -> Option<(BasisLength, HashTableLength)> {
 
         let divisor_data = divisor_data_vec.as_slice();
         let start_idx = self.last_known_divisors[mon as usize];
         let ndmon = !self.divisor_masks[mon as usize];
         if start_idx != 0 {
-        // println!("start_idx = {}", start_idx);
-        // println!("pos {:?}", divisor_data.iter().position(|&x| x.2 == start_idx));
-        match divisor_data.iter().position(|&x| x.2 == start_idx) {
-            Some(j) => return Some((divisor_data[j].2, self.get_difference(mon, divisor_data[j].1))),
-            None => (),
+            if !basis.elements[start_idx as usize].is_redundant {
+                return Some((start_idx, self.get_difference(mon, basis.elements[start_idx as usize].monomials[0])))
+            }
         }
-        }
-        // println!("coming here?");
-        let mut j = 0;
-        while divisor_data[j].2 < start_idx {
-            j += 1;
-        }
-        for i in j..divisor_data.len() {
-            let d = divisor_data[i];
+        for d in divisor_data {
             if self.divides(d.1, d.0, mon, ndmon) {
                 self.last_known_divisors[mon as usize] = d.2;
                 return Some((d.2, self.get_difference(mon, d.1)));
@@ -431,10 +422,10 @@ mod tests {
                     i as BasisLength));
             }
         }
-        assert_eq!(hash_table.find_divisor(mon1, &divs), Some((1, 5)));
+        assert_eq!(hash_table.find_divisor(mon1, &divs, &basis), Some((1, 5)));
         assert_eq!(hash_table.exponents[5], [0,1]);
         let mon2 = hash_table.insert(vec![5 as Exponent,0]);
-        assert_eq!(hash_table.find_divisor(mon2, &divs), None);
+        assert_eq!(hash_table.find_divisor(mon2, &divs, &basis), None);
     }
     #[test]
     fn test_generate_divisor_bounds() {

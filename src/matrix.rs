@@ -136,7 +136,7 @@ impl Matrix {
             for c in columns {
                 hash_table.indices[c as usize] = 1;
                 self.columns.push(c);
-                match hash_table.find_divisor(c, &divisor_data_vec) {
+                match hash_table.find_divisor(c, &divisor_data_vec, &basis) {
                     Some((divisor_idx, multiplier)) =>
                         self.add_pivot(divisor_idx, multiplier, basis, hash_table),
                     None => continue,
@@ -151,7 +151,7 @@ impl Matrix {
             for c in columns {
                 hash_table.indices[c as usize] = 1;
                 self.columns.push(c);
-                match hash_table.find_divisor(c, &divisor_data_vec) {
+                match hash_table.find_divisor(c, &divisor_data_vec, &basis) {
                     Some((divisor_idx, multiplier)) =>
                         self.add_pivot(divisor_idx, multiplier, basis, hash_table),
                     None => continue,
