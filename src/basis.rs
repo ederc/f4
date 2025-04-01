@@ -10,7 +10,7 @@ use crate::hash_table::{
     HashTable,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Element {
     pub coefficients: CoeffVec,
     pub monomials: MonomVec,

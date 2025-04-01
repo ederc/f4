@@ -3,6 +3,7 @@ mod matrix;
 mod io;
 mod hash_table;
 mod pairs;
+mod update;
 mod arithmetic;
 mod basis;
 
@@ -28,6 +29,11 @@ use crate::pairs::{
     PairSet,
 };
 
+use crate::update::{
+    LcmVec,
+    update_lcms,
+};
+
 use crate::matrix::{
     Matrix,
 };
@@ -43,12 +49,15 @@ fn main() {
     let mut hash_table = HashTable::new(&exponents);
     let mut basis = Basis::new::<i32>(&mut hash_table, characteristic, coefficients, exponents);
     let mut pairs = PairSet::new();
+    let mut lcm_vec = LcmVec::new();
+
     println!("deg     sel   pairs        matrix        density              new  data             round time");
     println!("----------------------------------------------------------------------------------------------");
     loop {
         let rd_time = Instant::now();
         if (basis.previous_length as usize) < basis.elements.len() {
             let up_time = Instant::now();
+            update_lcms(&mut lcm_vec, &mut basis, &mut hash_table);
             pairs.update(&mut basis, &mut hash_table);
             basis.update_data(&hash_table);
             up_overall_time += up_time.elapsed();
