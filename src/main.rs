@@ -35,6 +35,7 @@ use crate::matrix::{
 fn main() {
     let overall_time = Instant::now();
     let mut pre_overall_time = Duration::new(0,0);
+    let mut post_overall_time = Duration::new(0,0);
     let mut up_overall_time  = Duration::new(0,0);
     let mut la_overall_time  = Duration::new(0,0);
     let config = Config::new();
@@ -62,7 +63,9 @@ fn main() {
         let la_time = Instant::now();
         matrix.reduce(&mut basis);
         la_overall_time += la_time.elapsed();
+        let post_time = Instant::now();
         matrix.postprocessing(&mut basis, &hash_table);
+        post_overall_time += post_time.elapsed();
         println!("{:13.3} sec ", rd_time.elapsed().as_secs_f64());
     }
 
@@ -81,6 +84,13 @@ fn main() {
         .collect::<Vec<_>>()
         .len());
     println!("----------------------------------------------------------------------------------------------");
+    println!("hash table capacity: {}", hash_table.length.ilog2());
+    println!("hash table insert data: {} -> {} ({:3.3}%) -> {} ({:3.3}%)", hash_table.nr_in,
+        hash_table.nr_in_ex,
+        (hash_table.nr_in_ex as f64) / (hash_table.nr_in as f64) * 100.0,
+        hash_table.nr_in_new,
+        (hash_table.nr_in_new as f64) / (hash_table.nr_in as f64) * 100.0);
+    println!("----------------------------------------------------------------------------------------------");
     println!("overall time:        {:13.3} sec", overall_time.elapsed().as_secs_f64());
     println!("----------------------------------------------------------------------------------------------");
     println!("update time:         {:13.3} sec {:6.1}%", up_overall_time.as_secs_f64(),
@@ -89,6 +99,8 @@ fn main() {
         pre_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
     println!("linear algebra time: {:13.3} sec {:6.1}%", la_overall_time.as_secs_f64(),
         la_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
+    println!("postprocessingt time: {:12.3} sec {:6.1}%", post_overall_time.as_secs_f64(),
+        post_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
     println!("----------------------------------------------------------------------------------------------");
 
     // for (i,e) in basis.elements.into_iter().filter(|x| x.is_redundant == false).enumerate() {

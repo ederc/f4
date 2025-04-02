@@ -24,6 +24,9 @@ pub struct HashTable {
     pub indices      : Vec<HashTableLength>,
     pub nr_variables : usize,
     pub length           : usize,
+    pub nr_in       : usize,
+    pub nr_in_ex       : usize,
+    pub nr_in_new       : usize,
     divisor_mask_bits_per_variable: usize,
     divisor_mask_variable_range: usize,
 }
@@ -48,6 +51,9 @@ impl HashTable {
             length         : INITIAL_HASH_TABLE_SIZE,
             divisor_mask_bits_per_variable: 0,
             divisor_mask_variable_range: 0,
+            nr_in : 0,
+            nr_in_ex : 0,
+            nr_in_new : 0,
         };
         ht.exponents.push(vec!(0; ht.nr_variables));
         // let ev: ExpVec = vec!(0; INITIAL_HASH_TABLE_SIZE * ht.nr_variables);
@@ -291,6 +297,7 @@ impl HashTable {
 
     #[inline(always)]
     pub fn insert(&mut self, exp: ExpVec) -> HashTableLength {
+        self.nr_in += 1;
         let div = (self.map.len() - 1) as HashTableLength;
         let h = self.get_hash(&exp);
         let mut k = h;
@@ -301,11 +308,13 @@ impl HashTable {
             if hm == 0 {
                 break;
             }
+            self.nr_in_ex += 1;
             if self.values[hm as usize]!= h || self.exponents[hm as usize] != exp {
                 continue;
             }
             return hm;
         }
+        self.nr_in_new += 1;
         let pos = self.exponents.len();
         self.map[k as usize] = pos as HashTableLength;
         self.degrees[pos] = get_degree(&exp);
