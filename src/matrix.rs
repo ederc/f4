@@ -467,7 +467,8 @@ mod tests {
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
         let mult: ExpVec = vec![0,0,2];
-        let mult_idx = hash_table.insert(mult);
+        hash_table.exponent_buffer = mult;
+        let mult_idx = hash_table.insert();
 
         let mut matrix = Matrix::new();
 
@@ -516,7 +517,8 @@ mod tests {
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
         let mult: ExpVec = vec![0,0,2];
-        let mult_idx = hash_table.insert(mult);
+        hash_table.exponent_buffer = mult;
+        let mult_idx = hash_table.insert();
 
         let mut matrix = Matrix::new();
 
@@ -546,7 +548,8 @@ mod tests {
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
         let mult: ExpVec = vec![0,0,2];
-        let mult_idx = hash_table.insert(mult);
+        hash_table.exponent_buffer = mult;
+        let mult_idx = hash_table.insert();
 
         let mut matrix = Matrix::new();
 
@@ -572,7 +575,8 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![1,1,0];
-        let mult_idx = hash_table.insert(mult);
+        hash_table.exponent_buffer = mult;
+        let mult_idx = hash_table.insert();
 
         let mut matrix = Matrix::new();
 
@@ -602,7 +606,8 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![1,1,0];
-        let mult_idx = hash_table.insert(mult);
+        hash_table.exponent_buffer = mult;
+        let mult_idx = hash_table.insert();
 
         let mut matrix = Matrix::new();
 
@@ -632,7 +637,8 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![0,3,0];
-        let mult_idx = hash_table.insert(mult);
+        hash_table.exponent_buffer = mult;
+        let mult_idx = hash_table.insert();
 
         let mut matrix = Matrix::new();
 
@@ -652,7 +658,8 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![0,3,0];
-        let mult_idx = hash_table.insert(mult);
+        hash_table.exponent_buffer = mult;
+        let mult_idx = hash_table.insert();
 
         let mut matrix = Matrix::new();
 

@@ -369,12 +369,12 @@ mod tests {
         // is not useful and slow
         let mut rng = rand::rng();
         for _i in 0..INITIAL_HASH_TABLE_SIZE-1 {
-            let e = vec!(rng.random::<u16>(),
+            ht.exponent_buffer = vec!(rng.random::<u16>(),
                             rng.random::<u16>(),
                             rng.random::<u16>(),
                             rng.random::<u16>(),
                             rng.random::<u16>());
-            ht.insert(e);
+            ht.insert();
         }
         assert_eq!(ht.indices.len(), 2*INITIAL_HASH_TABLE_SIZE);
         assert_eq!(ht.map.len(), 4*INITIAL_HASH_TABLE_SIZE);
@@ -398,7 +398,8 @@ mod tests {
             vec![2,0,3]));
         let mut ht = HashTable::new(&exps);
         for e in exps.into_iter().flatten() {
-            ht.insert(e);
+            ht.exponent_buffer = e;
+            ht.insert();
         }
         assert_eq!(ht.cmp_monomials_by_degree(1,2), Ordering::Less);
         assert_eq!(ht.cmp_monomials_by_degree(2,3), Ordering::Greater);
@@ -412,7 +413,8 @@ mod tests {
             vec![2,0,3]));
         let mut ht = HashTable::new(&exps);
         for e in exps.into_iter().flatten() {
-            ht.insert(e);
+            ht.exponent_buffer = e;
+            ht.insert();
         }
         assert_eq!(ht.cmp_monomials_by_drl(1,2), Ordering::Less);
         assert_eq!(ht.cmp_monomials_by_drl(1,1), Ordering::Equal);
@@ -423,9 +425,11 @@ mod tests {
         let exp: Vec<Vec<ExpVec>> = vec!(vec!(vec![1,1,1]));
         let mut ht = HashTable::new(&exp);
         for e in exp.into_iter().flatten() {
-            ht.insert(e);
+            ht.exponent_buffer = e;
+            ht.insert();
         }
-        let pos = ht.insert(vec![1 as Exponent,1,1]);
+        ht.exponent_buffer = vec![1 as Exponent,1,1];
+        let pos = ht.insert();
         assert_eq!(pos, 1);
     }
     #[test]
@@ -435,7 +439,8 @@ mod tests {
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3], vec![1,1]], vec![vec![0,2], vec![1,1]]];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
-        let mon1 = hash_table.insert(vec![0 as Exponent,4]);
+        hash_table.exponent_buffer = vec![0 as Exponent,4];
+        let mon1 = hash_table.insert();
         let mut divs: Vec<(DivisorMask,HashTableLength,BasisLength)> = Vec::new();
         for i in 0..basis.elements.len() {
             if basis.elements[i].is_redundant == false {
@@ -447,7 +452,8 @@ mod tests {
         }
         assert_eq!(hash_table.find_divisor(mon1, &divs, &basis), Some((1, 5)));
         assert_eq!(hash_table.exponents[5], [0,1]);
-        let mon2 = hash_table.insert(vec![5 as Exponent,0]);
+        hash_table.exponent_buffer = vec![5 as Exponent,0];
+        let mon2 = hash_table.insert();
         assert_eq!(hash_table.find_divisor(mon2, &divs, &basis), None);
     }
     #[test]
@@ -468,7 +474,8 @@ mod tests {
         let exps: Vec<Vec<ExpVec>> = vec!(vec!(
             vec![1;65]));
         let mut ht = HashTable::new(&exps);
-        ht.insert(vec![1;65]);
+        ht.exponent_buffer = vec![1;65];
+        ht.insert();
         assert_eq!(ht.divisor_masks[1],18446744073709551615);
     }
     #[test]
@@ -478,7 +485,8 @@ mod tests {
             vec![2,0,4]));
         let mut ht = HashTable::new(&exps);
         for e in exps.into_iter().flatten() {
-            ht.insert(e);
+            ht.exponent_buffer = e;
+            ht.insert();
         }
         assert_eq!(*ht.exponents[1], [1,1,3]);
         assert_eq!(*ht.exponents[2], [2,0,4]);
@@ -487,11 +495,14 @@ mod tests {
     fn test_divides() {
         let exps: Vec<Vec<ExpVec>> = vec!(vec!(vec![1,1,3], vec![2,0,3]));
         let mut ht = HashTable::new(&exps);
-        let ma  = ht.insert(exps[0][0].clone());
+        ht.exponent_buffer = exps[0][0].clone();
+        let ma  = ht.insert();
         let dma = ht.divisor_masks[ma as usize];
-        let mb  = ht.insert(vec![1,2,3]);
+        ht.exponent_buffer = vec![1,2,3];
+        let mb  = ht.insert();
         let dmb = ht.divisor_masks[mb as usize];
-        let mc  = ht.insert(vec![3,0,4]);
+        ht.exponent_buffer = vec![3,0,4];
+        let mc  = ht.insert();
         let dmc = ht.divisor_masks[mc as usize];
         assert_eq!(ht.divides(ma, dma, mb, !dmb), true);
         assert_eq!(ht.divides(ma, dma, mc, !dmc), false);
@@ -501,9 +512,12 @@ mod tests {
     fn test_divides_pairs() {
         let exps: Vec<Vec<ExpVec>> = vec!(vec!(vec![1,1,3], vec![2,0,3]));
         let mut ht = HashTable::new(&exps);
-        let ma = ht.insert(exps[0][0].clone());
-        let mb = ht.insert(vec![1,2,3]);
-        let mc = ht.insert(vec![3,0,4]);
+        ht.exponent_buffer = exps[0][0].clone();
+        let ma  = ht.insert();
+        ht.exponent_buffer = vec![1,2,3];
+        let mb  = ht.insert();
+        ht.exponent_buffer = vec![3,0,4];
+        let mc  = ht.insert();
         assert_eq!(ht.divides_pairs(ma, mb), true);
         assert_eq!(ht.divides_pairs(ma, mc), false);
         assert_eq!(ht.divides_pairs(ma, ma), true);
@@ -515,8 +529,10 @@ mod tests {
             vec![1,1,3],
             vec![2,1,2]));
         let mut ht = HashTable::new(&exps);
-        ht.insert(exps[0][0].clone());
-        ht.insert(exps[0][1].clone());
+        ht.exponent_buffer = exps[0][0].clone();
+        ht.insert();
+        ht.exponent_buffer = exps[0][1].clone();
+        ht.insert();
         let _diff = ht.get_difference(2,1);
     }
     #[test]
@@ -525,8 +541,10 @@ mod tests {
             vec![1,1,3],
             vec![2,1,4]));
         let mut ht = HashTable::new(&exps);
-        ht.insert(exps[0][0].clone());
-        ht.insert(exps[0][1].clone());
+        ht.exponent_buffer = exps[0][0].clone();
+        ht.insert();
+        ht.exponent_buffer = exps[0][1].clone();
+        ht.insert();
         let diff = ht.get_difference(2,1);
         assert_eq!(ht.exponents[diff as usize], [1,0,1]);
     }
@@ -536,8 +554,10 @@ mod tests {
             vec![1,1,3],
             vec![2,0,3]));
         let mut ht = HashTable::new(&exps);
-        ht.insert(exps[0][0].clone());
-        ht.insert(exps[0][1].clone());
+        ht.exponent_buffer = exps[0][0].clone();
+        ht.insert();
+        ht.exponent_buffer = exps[0][1].clone();
+        ht.insert();
         let lcm = ht.get_lcm(1,2);
         assert_eq!(ht.exponents[lcm as usize], [2,1,3]);
     }
@@ -549,9 +569,12 @@ mod tests {
             vec![2,1,0]));
         let mut ht = HashTable::new(&exps);
         // let te : Vec<_> = exps[0][0].iter().zip(exps[0][1].clone()).map(|(a,b)| a+b).collect();
-        let m1 = ht.insert(exps[0][0].clone());
-        let m2 = ht.insert(exps[0][1].clone());
-        let m3 = ht.insert(exps[0][1].clone());
+        ht.exponent_buffer = exps[0][0].clone();
+        let m1 = ht.insert();
+        ht.exponent_buffer = exps[0][1].clone();
+        let m2 = ht.insert();
+        ht.exponent_buffer = exps[0][2].clone();
+        let m3 = ht.insert();
         assert_eq!(ht.are_monomials_coprime(m1, m2), true);
         assert_eq!(ht.are_monomials_coprime(m3, m2), false);
     }
