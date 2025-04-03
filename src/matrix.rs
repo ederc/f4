@@ -72,7 +72,7 @@ impl Matrix {
             let lcm = next_pairs[start].lcm;
             // set index of lcm as done since we have at least a second generator
             // which plays the role as reducer of this monomial
-            hash_table.indices[lcm as usize] = 1;
+            hash_table.indices[lcm as usize] = 2;
             self.columns.push(lcm);
             let stop = next_pairs[start..]
                 .iter()
@@ -144,7 +144,8 @@ impl Matrix {
                     self.columns.push(*c);
                     match hash_table.find_divisor(*c, &divisor_data_vec, &basis) {
                         Some((divisor_idx, multiplier)) =>
-                            new_pivot_data.push((divisor_idx, multiplier)),
+                         { new_pivot_data.push((divisor_idx, multiplier));
+                           hash_table.indices[*c as usize] = 2 },
                         None => continue,
                     }
                 }
@@ -163,7 +164,8 @@ impl Matrix {
                         self.columns.push(*c);
                         match hash_table.find_divisor(*c, &divisor_data_vec, &basis) {
                             Some((divisor_idx, multiplier)) =>
-                                new_pivot_data.push((divisor_idx, multiplier)),
+                             { new_pivot_data.push((divisor_idx, multiplier));
+                               hash_table.indices[*c as usize] = 2 },
                             None => continue,
                         }
                     }
