@@ -122,7 +122,6 @@ impl Matrix {
 
     fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
 
-            let up_time = Instant::now();
         // get list of all lms and divmask
         let mut divisor_data_vec: 
             Vec<(DivisorMask,HashTableLength,BasisLength)> = Vec::new();
@@ -134,7 +133,6 @@ impl Matrix {
                     i as BasisLength));
             }
         }
-        println!("{:.3} sec ", up_time.elapsed().as_secs_f64());
         let mut new_pivot_data: Vec<(BasisLength, HashTableLength)> = Vec::new();
 
         for todos in &self.todo {
