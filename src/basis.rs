@@ -76,7 +76,7 @@ impl Basis {
         for (c,e) in cfs.iter().zip(exps) {
             self.elements.push(Element {
                 coefficients: c.iter().map(|a| *a % self.characteristic as Coefficient).collect(),
-                monomials: e.iter().map(|a| hash_table.insert(a.to_vec())).collect(),
+                monomials: e.iter().map(|a| { hash_table.exponent_buffer = a.to_vec(); hash_table.insert() }).collect(),
                 is_redundant: false});
         }
     }
