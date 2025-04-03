@@ -180,7 +180,7 @@ impl Matrix {
 
         self.nr_known_pivots = self.pivots.len();
         // set colum index for corresponding monomial hash in hash table
-        self.columns.sort_by(|a,b| hash_table.cmp_monomials_by_drl(*b, *a));
+        self.columns.sort_by(|a,b| hash_table.cmp_monomials_by_index_then_drl(*b, *a));
         for i in 0..self.columns.len() {
             hash_table.indices[self.columns[i] as usize] = i as HashTableLength;
         }
@@ -560,7 +560,7 @@ mod tests {
         matrix.link_pivots_to_columns();
         matrix.reduce_row(0, &mut basis);
         assert_eq!(matrix.pivots.len(), 7);
-        assert_eq!(matrix.pivots[6].columns, [4,7]);
+        assert_eq!(matrix.pivots[6].columns, [6,7]);
         assert_eq!(matrix.pivots[6].basis_index, 4);
         assert_eq!(basis.elements[matrix.pivots[6].basis_index as usize].coefficients, [1,43681]);
     }

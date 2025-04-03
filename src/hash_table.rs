@@ -255,6 +255,32 @@ impl HashTable {
         return Ordering::Equal;
     }
 
+    pub fn cmp_monomials_by_index_then_drl(&self, a: HashTableLength, b:HashTableLength) -> Ordering {
+        debug_assert!(
+            self.exponents[a as usize].len() == self.exponents[b as usize].len());
+        
+        let ia = &self.indices[a as usize];
+        let ib = &self.indices[b as usize];
+        if ia != ib {
+            if ia > ib { return Ordering::Greater; }
+            else { return Ordering::Less; }
+        }
+        let da = &self.degrees[a as usize];
+        let db = &self.degrees[b as usize];
+        if da != db {
+            if da > db { return Ordering::Greater; }
+            else { return Ordering::Less; }
+        }
+        // From here on, we know that the degrees are the same
+        let ea = &self.exponents[a as usize];
+        let eb = &self.exponents[b as usize];
+        for i in (0..ea.len()).rev() {
+            if ea[i] < eb[i] { return Ordering::Greater; }
+            else if ea[i] > eb[i] { return Ordering::Less; }
+        }
+        return Ordering::Equal;
+    }
+
     pub fn cmp_monomials_by_drl(&self, a: HashTableLength, b:HashTableLength) -> Ordering {
         debug_assert!(
             self.exponents[a as usize].len() == self.exponents[b as usize].len());
