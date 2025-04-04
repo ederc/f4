@@ -85,15 +85,15 @@ impl Matrix {
                 gens.insert(next_pairs[i].generators.0);
             }
             debug_assert!(gens.len() > 0);
-            let mult_idx = hash_table.get_difference(
+            let multiplier = hash_table.get_difference(
                 lcm, basis.elements[first_generator as usize].monomials[0]);
-            self.add_pivot(first_generator, mult_idx, basis, hash_table);
+            self.add_pivot(first_generator, multiplier, basis, hash_table);
 
             gens.remove(&first_generator);
             for g in &gens {
-                let mult_idx = hash_table.get_difference(
+                let multiplier = hash_table.get_difference(
                     lcm, basis.elements[*g as usize].monomials[0]);
-                self.add_todo(*g, mult_idx, basis, hash_table);
+                self.add_todo(*g, multiplier, basis, hash_table);
             }
             start = stop;
             gens.clear();
@@ -101,21 +101,21 @@ impl Matrix {
     }
 
     fn add_pivot(&mut self,
-        divisor_idx: BasisLength, mult_idx: HashTableLength,
+        divisor_idx: BasisLength, multiplier: ExpVec,
         basis: &Basis, hash_table: &mut HashTable) {
 
         let mult_mons = hash_table.generate_multiplied_monomials(
-            divisor_idx, mult_idx, basis);
+            divisor_idx, multiplier, basis);
         self.pivots.push(
             Row { basis_index : divisor_idx, columns : mult_mons} );
     }
 
     fn add_todo(&mut self,
-        divisor_idx: BasisLength, mult_idx: HashTableLength,
+        divisor_idx: BasisLength, multiplier: ExpVec,
         basis: &Basis, hash_table: &mut HashTable) {
 
         let mult_mons = hash_table.generate_multiplied_monomials(
-            divisor_idx, mult_idx, basis);
+            divisor_idx, multiplier, basis);
         self.todo.push(
             Row { basis_index : divisor_idx, columns : mult_mons} );
     }
@@ -133,7 +133,7 @@ impl Matrix {
                     i as BasisLength));
             }
         }
-        let mut new_pivot_data: Vec<(BasisLength, HashTableLength)> = Vec::new();
+        let mut new_pivot_data: Vec<(BasisLength, ExpVec)> = Vec::new();
 
         for todos in &self.todo {
             for c in &todos.columns {
@@ -154,7 +154,7 @@ impl Matrix {
         }
         let mut curr_nr_pivs = 0;
         while curr_nr_pivs < self.pivots.len() {
-            let mut new_pivot_data: Vec<(BasisLength, HashTableLength)> = Vec::new();
+            let mut new_pivot_data: Vec<(BasisLength, ExpVec)> = Vec::new();
             for pivots in &self.pivots[curr_nr_pivs..self.pivots.len()] {
                 for c in &pivots.columns {
                     if hash_table.indices[*c as usize] == 0 {
