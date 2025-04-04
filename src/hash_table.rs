@@ -211,16 +211,13 @@ impl HashTable {
 
         let mons = &basis.elements[divisor_idx as usize].monomials;
         let mut mult_mons: MonomVec = vec!(0; mons.len());
-        // let mut exps: ExpVec = vec!(0; self.nr_variables);
+
         for (idx, m) in mons.iter().enumerate() {
             let e_mon = &self.exponents[*m as usize];
-            for i in 0..self.nr_variables {
-                self.exponent_buffer[i] = multiplier[i] + e_mon[i];
-            }
             // let mut exps: ExpVec = vec!(0; self.nr_variables);
-            // for ((e, mu), mo) in exps.iter_mut().zip(e_mult).zip(e_mon) {
-            //     *e = mu +mo;
-            // }
+            for ((e, mu), mo) in self.exponent_buffer.iter_mut().zip(&multiplier).zip(e_mon) {
+                *e = mu +mo;
+            }
             mult_mons[idx] = self.insert();
         }
         return mult_mons;
@@ -329,8 +326,10 @@ impl HashTable {
                 break;
             }
             self.nr_in_ex += 1;
-            if self.values[hm as usize]!= h
-                || self.exponents[hm as usize] != self.exponent_buffer {
+            if self.values[hm as usize]!= h {
+                continue;
+            }
+            if self.exponents[hm as usize] != self.exponent_buffer {
                 continue;
             }
             return hm;

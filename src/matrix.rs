@@ -100,6 +100,7 @@ impl Matrix {
         }
     }
 
+    #[inline(always)]
     fn add_pivot(&mut self,
         divisor_idx: BasisLength, multiplier: ExpVec,
         basis: &Basis, hash_table: &mut HashTable) {
@@ -110,6 +111,7 @@ impl Matrix {
             Row { basis_index : divisor_idx, columns : mult_mons} );
     }
 
+    #[inline(always)]
     fn add_todo(&mut self,
         divisor_idx: BasisLength, multiplier: ExpVec,
         basis: &Basis, hash_table: &mut HashTable) {
