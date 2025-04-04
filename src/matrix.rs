@@ -467,12 +467,9 @@ mod tests {
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
         let mult: ExpVec = vec![0,0,2];
-        hash_table.exponent_buffer = mult;
-        let mult_idx = hash_table.insert();
-
         let mut matrix = Matrix::new();
 
-        matrix.add_todo(3, mult_idx, &basis, &mut hash_table);
+        matrix.add_todo(3, mult, &basis, &mut hash_table);
         matrix.get_reducers(&basis, &mut hash_table);
         matrix.convert_hashes_to_columns(&mut hash_table);
         assert_eq!(matrix.columns.len(), 8);
@@ -517,12 +514,9 @@ mod tests {
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
         let mult: ExpVec = vec![0,0,2];
-        hash_table.exponent_buffer = mult;
-        let mult_idx = hash_table.insert();
-
         let mut matrix = Matrix::new();
 
-        matrix.add_todo(3, mult_idx, &basis, &mut hash_table);
+        matrix.add_todo(3, mult, &basis, &mut hash_table);
         matrix.get_reducers(&basis, &mut hash_table);
         matrix.convert_hashes_to_columns(&mut hash_table);
         matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
@@ -548,12 +542,9 @@ mod tests {
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
         let mult: ExpVec = vec![0,0,2];
-        hash_table.exponent_buffer = mult;
-        let mult_idx = hash_table.insert();
-
         let mut matrix = Matrix::new();
 
-        matrix.add_todo(3, mult_idx, &basis, &mut hash_table);
+        matrix.add_todo(3, mult, &basis, &mut hash_table);
         matrix.get_reducers(&basis, &mut hash_table);
         matrix.convert_hashes_to_columns(&mut hash_table);
         matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
@@ -575,12 +566,9 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![1,1,0];
-        hash_table.exponent_buffer = mult;
-        let mult_idx = hash_table.insert();
-
         let mut matrix = Matrix::new();
 
-        matrix.add_todo(0, mult_idx, &basis, &mut hash_table);
+        matrix.add_todo(0, mult, &basis, &mut hash_table);
         matrix.get_reducers(&basis, &mut hash_table);
         matrix.convert_hashes_to_columns(&mut hash_table);
 
@@ -606,12 +594,9 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![1,1,0];
-        hash_table.exponent_buffer = mult;
-        let mult_idx = hash_table.insert();
-
         let mut matrix = Matrix::new();
 
-        matrix.add_todo(0, mult_idx, &basis, &mut hash_table);
+        matrix.add_todo(0, mult, &basis, &mut hash_table);
         matrix.get_reducers(&basis, &mut hash_table);
 
         assert_eq!(matrix.todo.len(), 1);
@@ -637,12 +622,9 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![0,3,0];
-        hash_table.exponent_buffer = mult;
-        let mult_idx = hash_table.insert();
-
         let mut matrix = Matrix::new();
 
-        matrix.add_todo(0, mult_idx, &basis, &mut hash_table);
+        matrix.add_todo(0, mult, &basis, &mut hash_table);
         assert_eq!(matrix.todo[0].basis_index, 0);
         assert_eq!(matrix.todo[0].columns, [1,8]);
     }
@@ -658,12 +640,9 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         let mult: ExpVec = vec![0,3,0];
-        hash_table.exponent_buffer = mult;
-        let mult_idx = hash_table.insert();
-
         let mut matrix = Matrix::new();
 
-        matrix.add_pivot(0, mult_idx, &basis, &mut hash_table);
+        matrix.add_pivot(0, mult, &basis, &mut hash_table);
         assert_eq!(matrix.pivots[0].basis_index, 0);
         assert_eq!(matrix.pivots[0].columns, [1,8]);
     }

@@ -469,8 +469,9 @@ mod tests {
                     i as BasisLength));
             }
         }
-        assert_eq!(hash_table.find_divisor(mon1, &divs, &basis), Some((1, 5)));
-        assert_eq!(hash_table.exponents[5], [0,1]);
+        let multiplier: ExpVec = vec![0, 1];
+        assert_eq!(hash_table.find_divisor(mon1, &divs, &basis), Some((1, multiplier)));
+        assert_eq!(hash_table.exponents.len(), 5);
         hash_table.exponent_buffer = vec![5 as Exponent,0];
         let mon2 = hash_table.insert();
         assert_eq!(hash_table.find_divisor(mon2, &divs, &basis), None);
@@ -564,8 +565,7 @@ mod tests {
         ht.insert();
         ht.exponent_buffer = exps[0][1].clone();
         ht.insert();
-        let diff = ht.get_difference(2,1);
-        assert_eq!(ht.exponents[diff as usize], [1,0,1]);
+        assert_eq!(ht.get_difference(2,1), [1,0,1]);
     }
     #[test]
     fn test_get_lcm() {
