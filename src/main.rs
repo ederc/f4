@@ -30,8 +30,7 @@ use crate::pairs::{
 };
 
 use crate::update::{
-    LcmVec,
-    update_lcms,
+    LcmData,
 };
 
 use crate::matrix::{
@@ -49,7 +48,7 @@ fn main() {
     let mut hash_table = HashTable::new(&exponents);
     let mut basis = Basis::new::<i32>(&mut hash_table, characteristic, coefficients, exponents);
     let mut pairs = PairSet::new();
-    let mut lcms = LcmVec::new();
+    let mut lcms = LcmData::new();
 
     println!("deg     sel   pairs        matrix        density              new  data             round time");
     println!("----------------------------------------------------------------------------------------------");
@@ -57,7 +56,7 @@ fn main() {
         let rd_time = Instant::now();
         if (basis.previous_length as usize) < basis.elements.len() {
             let up_time = Instant::now();
-            update_lcms(&mut lcms, &basis, &mut hash_table);
+            lcms.update(&basis, &mut hash_table);
             pairs.update(&mut basis, &mut hash_table);
             basis.update_data(&hash_table);
             up_overall_time += up_time.elapsed();
