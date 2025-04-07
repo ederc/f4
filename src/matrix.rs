@@ -3,11 +3,6 @@ use std::io::Write;
 use std::io::stdout;
 use rayon::prelude::*;
 
-use std::time::{
-    Duration,
-    Instant,
-};
-
 use crate::arithmetic::i32::{
     modular_inverse,
 };
@@ -87,33 +82,31 @@ impl Matrix {
             debug_assert!(gens.len() > 0);
             let multiplier = hash_table.get_difference(
                 lcm, basis.elements[first_generator as usize].monomials[0]);
-            self.add_pivot(first_generator, multiplier, basis, hash_table);
+            self.add_pivot(first_generator, &multiplier, basis, hash_table);
 
             gens.remove(&first_generator);
             for g in &gens {
                 let multiplier = hash_table.get_difference(
                     lcm, basis.elements[*g as usize].monomials[0]);
-                self.add_todo(*g, multiplier, basis, hash_table);
+                self.add_todo(*g, &multiplier, basis, hash_table);
             }
             start = stop;
             gens.clear();
         }
     }
 
-    #[inline(always)]
     fn add_pivot(&mut self,
-        divisor_idx: BasisLength, multiplier: ExpVec,
+        divisor_idx: BasisLength, multiplier: &[Exponent],
         basis: &Basis, hash_table: &mut HashTable) {
 
         let mult_mons = hash_table.generate_multiplied_monomials(
-            divisor_idx, multiplier, basis);
+            divisor_idx, &multiplier, basis);
         self.pivots.push(
             Row { basis_index : divisor_idx, columns : mult_mons} );
     }
 
-    #[inline(always)]
     fn add_todo(&mut self,
-        divisor_idx: BasisLength, multiplier: ExpVec,
+        divisor_idx: BasisLength, multiplier: &[Exponent],
         basis: &Basis, hash_table: &mut HashTable) {
 
         let mult_mons = hash_table.generate_multiplied_monomials(
@@ -137,45 +130,65 @@ impl Matrix {
         }
         let mut new_pivot_data: Vec<(BasisLength, ExpVec)> = Vec::new();
 
-        for todos in &self.todo {
-            for c in &todos.columns {
-                if hash_table.indices[*c as usize] == 0 {
-                    hash_table.indices[*c as usize] = 1;
-                    self.columns.push(*c);
-                    match hash_table.find_divisor(*c, &divisor_data_vec, &basis) {
+        for i in 0..self.todo.len() {
+            for j in 0..self.todo[i].columns.len() {
+                let c = self.todo[i].columns[j] as usize;
+                if hash_table.indices[c] == 0 {
+                    hash_table.indices[c] = 1;
+                    self.columns.push(c as HashTableLength);
+                    match hash_table.find_divisor(c as HashTableLength, &divisor_data_vec, &basis) {
                         Some((divisor_idx, multiplier)) =>
-                         { new_pivot_data.push((divisor_idx, multiplier));
-                           hash_table.indices[*c as usize] = 2 },
+                         { self.add_pivot(divisor_idx, &multiplier, basis, hash_table); //new_pivot_data.push((divisor_idx, multiplier));
+                           hash_table.indices[c] = 2 },
                         None => continue,
                     }
                 }
             }
         }
-        for np in new_pivot_data {
-            self.add_pivot(np.0, np.1, basis, hash_table);
-        }
-        let mut curr_nr_pivs = 0;
-        while curr_nr_pivs < self.pivots.len() {
-            let mut new_pivot_data: Vec<(BasisLength, ExpVec)> = Vec::new();
-            for pivots in &self.pivots[curr_nr_pivs..self.pivots.len()] {
-                for c in &pivots.columns {
-                    if hash_table.indices[*c as usize] == 0 {
-                        hash_table.indices[*c as usize] = 1;
-                        self.columns.push(*c);
-                        match hash_table.find_divisor(*c, &divisor_data_vec, &basis) {
-                            Some((divisor_idx, multiplier)) =>
-                             { new_pivot_data.push((divisor_idx, multiplier));
-                               hash_table.indices[*c as usize] = 2 },
-                            None => continue,
-                        }
+        // number of pivots may change, thus use while loop instead of for loop
+        // for updated checks on self.pivots.len()
+        let mut i = 0;
+        while i < self.pivots.len() {
+            for j in 0..self.pivots[i].columns.len() {
+                let c = self.pivots[i].columns[j] as usize;
+                if hash_table.indices[c] == 0 {
+                    hash_table.indices[c] = 1;
+                    self.columns.push(c as HashTableLength);
+                    match hash_table.find_divisor(c as HashTableLength, &divisor_data_vec, &basis) {
+                        Some((divisor_idx, multiplier)) =>
+                         { self.add_pivot(divisor_idx, &multiplier, basis, hash_table); //new_pivot_data.push((divisor_idx, multiplier));
+                           hash_table.indices[c] = 2 },
+                        None => continue,
                     }
                 }
             }
-            curr_nr_pivs = self.pivots.len();
-            for np in new_pivot_data {
-                self.add_pivot(np.0, np.1, basis, hash_table);
-            }
+            i += 1;
         }
+        // for np in new_pivot_data {
+        //     self.add_pivot(np.0, &np.1, basis, hash_table);
+        // }
+        // let mut curr_nr_pivs = 0;
+        // while curr_nr_pivs < self.pivots.len() {
+        //     let mut new_pivot_data: Vec<(BasisLength, ExpVec)> = Vec::new();
+        //     for pivots in &self.pivots[curr_nr_pivs..self.pivots.len()] {
+        //         for c in &pivots.columns {
+        //             if hash_table.indices[*c as usize] == 0 {
+        //                 hash_table.indices[*c as usize] = 1;
+        //                 self.columns.push(*c);
+        //                 match hash_table.find_divisor(*c, &divisor_data_vec, &basis) {
+        //                     Some((divisor_idx, multiplier)) =>
+        //                      { new_pivot_data.push((divisor_idx, multiplier));
+        //                        hash_table.indices[*c as usize] = 2 },
+        //                     None => continue,
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     curr_nr_pivs = self.pivots.len();
+        //     for np in new_pivot_data {
+        //         self.add_pivot(np.0, &np.1, basis, hash_table);
+        //     }
+        // }
     }
 
     fn convert_hashes_to_columns(&mut self, hash_table: &mut HashTable) {

@@ -15,7 +15,6 @@ const INITIAL_HASH_TABLE_SIZE: usize = 131072;
 pub struct HashTable {
     pub degrees      : Vec<Degree>,
     pub divisor_masks: Vec<DivisorMask>,
-    last_known_divisors: Vec<BasisLength>,
     pub exponents    : Vec<ExpVec>,
     random_seed      : Vec<HashValue>,
     values           : Vec<HashValue>,
@@ -43,7 +42,6 @@ impl HashTable {
             random_seed    : Vec::new(),
             degrees        : vec![0; INITIAL_HASH_TABLE_SIZE],
             divisor_masks  : vec![0; INITIAL_HASH_TABLE_SIZE],
-            last_known_divisors : vec![0; INITIAL_HASH_TABLE_SIZE],
             values         : vec![0; INITIAL_HASH_TABLE_SIZE],
             map            : vec![0; 2*INITIAL_HASH_TABLE_SIZE],
             divisor_bounds : Vec::new(),
@@ -81,7 +79,7 @@ impl HashTable {
     // during symbolic preprocessing, usually a represents the lcm
     // of b with some other monommial.
     pub fn get_difference(
-        &mut self, mon1: HashTableLength, mon2:HashTableLength)
+        &self, mon1: HashTableLength, mon2:HashTableLength)
         -> ExpVec {
         let lm_e = &self.exponents[mon1 as usize];
         let lm_f = &self.exponents[mon2 as usize];
@@ -90,6 +88,26 @@ impl HashTable {
             .zip(lm_f)
             .map(|(a,b)| *a-*b)
             .collect();
+    }
+
+    pub fn get_difference_with_check(
+        &mut self, mon1: HashTableLength, mon2:HashTableLength)
+        -> Option<ExpVec> {
+        let lm_e = &self.exponents[mon1 as usize];
+        let lm_f = &self.exponents[mon2 as usize];
+        debug_assert!(lm_e.into_iter().zip(lm_f).all(|(a,b)| *a>=*b));
+        for i in 0..self.nr_variables {
+            if lm_e[i] < lm_f[i] {
+                return None;
+            } else {
+                self.exponent_buffer[i] = lm_e[i] - lm_f[i];
+            }
+        }
+        return Some(self.exponent_buffer.clone());
+        // return lm_e.into_iter()
+        //     .zip(lm_f)
+        //     .map(|(a,b)| *a-*b)
+        //     .collect();
     }
 
     pub fn get_lcm(
@@ -185,21 +203,24 @@ impl HashTable {
         return ea.into_iter().zip(eb).all(|(a,b)| *a <= *b);
     }
 
-    pub fn find_divisor(&mut self, mon: HashTableLength,
-            divisor_data_vec: &Vec<(DivisorMask,HashTableLength,BasisLength)>,basis: &Basis)
-        -> Option<(BasisLength, ExpVec)> {
-
-        let divisor_data = divisor_data_vec.as_slice();
-        let start_idx = self.last_known_divisors[mon as usize];
-        let ndmon = !self.divisor_masks[mon as usize];
-        if start_idx != 0 {
-            if !basis.elements[start_idx as usize].is_redundant {
-                return Some((start_idx, self.get_difference(mon, basis.elements[start_idx as usize].monomials[0])))
-            }
+    #[inline(always)]
+    pub fn divides_pre(&self, ma: HashTableLength, dma: DivisorMask, eb: &[Exponent], neg_dmb: DivisorMask) -> bool {
+        if (dma & neg_dmb) != 0 {
+            return false;
         }
-        for d in divisor_data {
-            if self.divides(d.1, d.0, mon, ndmon) {
-                self.last_known_divisors[mon as usize] = d.2;
+        let ea = &self.exponents[ma as usize];
+        // let eb = &self.exponents[mb as usize];
+        return ea.into_iter().zip(eb).all(|(a,b)| *a <= *b);
+    }
+
+    pub fn find_divisor(&mut self, mon: HashTableLength,
+            divisor_data_vec: &[(DivisorMask,HashTableLength,BasisLength)],basis: &Basis)
+        -> Option<(BasisLength, ExpVec)> {
+        // let divisor_data = divisor_data_vec.as_slice();
+        let ndmon = !&self.divisor_masks[mon as usize];
+        let mon_exp_vec = &self.exponents[mon as usize];
+        for d in divisor_data_vec {
+            if self.divides_pre(d.1, d.0, mon_exp_vec, ndmon) {
                 return Some((d.2, self.get_difference(mon, d.1)));
             }
         }
@@ -207,16 +228,15 @@ impl HashTable {
     }
 
     pub fn generate_multiplied_monomials(&mut self, divisor_idx: BasisLength,
-        multiplier: ExpVec, basis: &Basis) -> MonomVec {
+        multiplier: &[Exponent], basis: &Basis) -> MonomVec {
 
         let mons = &basis.elements[divisor_idx as usize].monomials;
         let mut mult_mons: MonomVec = vec!(0; mons.len());
 
         for (idx, m) in mons.iter().enumerate() {
             let e_mon = &self.exponents[*m as usize];
-            // let mut exps: ExpVec = vec!(0; self.nr_variables);
-            for ((e, mu), mo) in self.exponent_buffer.iter_mut().zip(&multiplier).zip(e_mon) {
-                *e = mu +mo;
+            for ((e, mu), mo) in self.exponent_buffer.iter_mut().zip(multiplier).zip(e_mon) {
+                *e = mu + mo;
             }
             mult_mons[idx] = self.insert();
         }
@@ -224,7 +244,7 @@ impl HashTable {
     }
 
     #[inline(always)]
-    fn get_hash(&self, exp: &ExpVec) -> HashValue {
+    fn get_hash(&self, exp: &[Exponent]) -> HashValue {
         return exp.iter().zip(&self.random_seed)
             .map(|(e,r) | (*e as HashTableLength).wrapping_mul(*r))
             .fold(0, |acc, x| acc.wrapping_add(x));
@@ -293,7 +313,6 @@ impl HashTable {
         self.map = vec!(0; 2*self.length);
         self.degrees.resize(self.length, 0);
         self.divisor_masks.resize(self.length, 0);
-        self.last_known_divisors.resize(self.length, 0);
         self.values.resize(self.length, 0);
         self.indices.resize(self.length, 0);
 
@@ -325,11 +344,11 @@ impl HashTable {
             if hm == 0 {
                 break;
             }
-            self.nr_in_ex += 1;
             if self.values[hm as usize]!= h {
                 continue;
             }
-            if self.exponents[hm as usize] != self.exponent_buffer {
+            self.nr_in_ex += 1;
+            if &self.exponents[hm as usize] != &self.exponent_buffer {
                 continue;
             }
             return hm;
@@ -340,7 +359,6 @@ impl HashTable {
         self.degrees[pos] = get_degree(&self.exponent_buffer);
         self.divisor_masks[pos] = get_divisor_mask(
             &self.exponent_buffer, &self.divisor_bounds, self.divisor_mask_variable_range);
-        // self.last_known_divisors[pos] = 0;
         self.values[pos] = h;
         self.exponents.push(self.exponent_buffer.clone());
 
@@ -355,7 +373,7 @@ impl HashTable {
 }
 
 #[inline(always)]
-fn get_divisor_mask(exp: &ExpVec, divisor_bounds: &ExpVec, range: usize) -> DivisorMask {
+fn get_divisor_mask(exp: &[Exponent], divisor_bounds: &[Exponent], range: usize) -> DivisorMask {
     let mut divisor_mask: DivisorMask = 0;
     let e = &exp[0..range];
     e.into_iter().cycle()
@@ -365,7 +383,7 @@ fn get_divisor_mask(exp: &ExpVec, divisor_bounds: &ExpVec, range: usize) -> Divi
 }
 
 #[inline(always)]
-fn get_degree(exp: &ExpVec) -> Degree {
+fn get_degree(exp: &[Exponent]) -> Degree {
     return exp.iter().fold(0, |acc, x| acc.wrapping_add(*x as Degree));
 }
 
