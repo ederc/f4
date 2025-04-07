@@ -158,9 +158,9 @@ mod tests {
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         assert_eq!(basis.elements[0].coefficients, [1,21840]);
-        assert_eq!(basis.elements[0].monomials, [2,3]);
+        assert_eq!(basis.elements[0].monomials, [1,2]);
         assert_eq!(basis.elements[1].coefficients, [1,65520]);
-        assert_eq!(basis.elements[1].monomials, [1,2]);
+        assert_eq!(basis.elements[1].monomials, [0,1]);
     }
 
     #[test]

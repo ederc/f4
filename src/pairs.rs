@@ -170,8 +170,8 @@ mod tests {
         assert_eq!(pairs.list.len(), 2);
         assert_eq!(pairs.nr_product_criterion_applied, 2);
         assert_eq!(pairs.nr_chain_criterion_applied, 2);
-        assert_eq!(pairs.list[0], Pair { lcm: 4, generators: (1, 0), criterion: Criterion::Keep } );
-        assert_eq!(pairs.list[1], Pair { lcm: 1, generators: (3, 0), criterion: Criterion::Keep } );
+        assert_eq!(pairs.list[0], Pair { lcm: 3, generators: (1, 0), criterion: Criterion::Keep } );
+        assert_eq!(pairs.list[1], Pair { lcm: 0, generators: (3, 0), criterion: Criterion::Keep } );
     }
     #[test]
     fn test_select_pairs_by_minimal_degree() {
@@ -188,6 +188,6 @@ mod tests {
         let min_degree_pairs = pairs.select_pairs_by_minimal_degree(&hash_table);
 
         assert_eq!(min_degree_pairs.len(), 1);
-        assert_eq!(min_degree_pairs[0], Pair { lcm: 4, generators: (1, 0), criterion: Criterion::Keep } );
+        assert_eq!(min_degree_pairs[0], Pair { lcm: 3, generators: (1, 0), criterion: Criterion::Keep } );
     }
 }

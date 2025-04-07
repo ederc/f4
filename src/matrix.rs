@@ -641,7 +641,7 @@ mod tests {
 
         matrix.add_todo(0, &mult, &basis, &mut hash_table);
         assert_eq!(matrix.todo[0].basis_index, 0);
-        assert_eq!(matrix.todo[0].columns, [1,8]);
+        assert_eq!(matrix.todo[0].columns, [0,7]);
     }
 
     #[test]
@@ -659,7 +659,7 @@ mod tests {
 
         matrix.add_pivot(0, &mult, &basis, &mut hash_table);
         assert_eq!(matrix.pivots[0].basis_index, 0);
-        assert_eq!(matrix.pivots[0].columns, [1,8]);
+        assert_eq!(matrix.pivots[0].columns, [0,7]);
     }
 
     #[test]
@@ -683,9 +683,9 @@ mod tests {
         assert_eq!(matrix.columns.len(), 1);
         assert_eq!(matrix.todo.len(), 1);
         assert_eq!(matrix.todo[0].basis_index, 1);
-        assert_eq!(matrix.todo[0].columns, [4,5]);
+        assert_eq!(matrix.todo[0].columns, [3,4]);
         assert_eq!(matrix.pivots.len(), 1);
         assert_eq!(matrix.pivots[0].basis_index, 0);
-        assert_eq!(matrix.pivots[0].columns, [4,6]);
+        assert_eq!(matrix.pivots[0].columns, [3,5]);
     }
 }
