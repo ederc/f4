@@ -21,7 +21,7 @@ pub struct LcmData {
 
 pub type LcmVec = Vec<LcmData>;
 
-pub fn update_lcms(lcm_vec: &mut LcmVec, basis: &mut Basis, hash_table: &mut HashTable) {
+pub fn update_lcms(lcm_vec: &mut LcmVec, basis: &Basis, hash_table: &mut HashTable) {
 
     let mut e_idx = basis.previous_length as usize;
     while e_idx < basis.elements.len() {
@@ -41,5 +41,27 @@ pub fn update_lcms(lcm_vec: &mut LcmVec, basis: &mut Basis, hash_table: &mut Has
             // lcm_vec[idx].generators.insert(&f);
         }
         e_idx += 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_update_lcms() {
+        let fc : Characteristic = 65521;
+        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3]];
+        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3], vec![1,1]], vec![vec![0,2], vec![1,1]]];
+        let mut hash_table = HashTable::new(&exps);
+        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+        let mut lcms = LcmVec::new();
+
+        update_lcms(&mut lcms, &basis, &mut hash_table);
+
+        assert_eq!(lcms.len(), 1);
+        assert_eq!(lcms[0].generators, BTreeSet::from([0,1]));
+        assert_eq!(lcms[0].lcm, 3);
+        assert_eq!(hash_table.exponents[lcms[0].lcm as usize], [1,3]);
     }
 }
