@@ -60,7 +60,7 @@ impl PairSet {
                     Pair {
                         criterion: if hash_table.are_monomials_coprime(
                             e.monomials[0], f.monomials[0])
-                        { Criterion::Product } else if f.is_redundant { Criterion::Chain}
+                        { Criterion::Product } // else if f.is_redundant { Criterion::Chain}
                         else { Criterion::Keep },
                         lcm: hash_table.get_lcm(e.monomials[0], f.monomials[0]),
                         generators: ((i as BasisLength)+basis.previous_length, j as BasisLength),

@@ -78,11 +78,7 @@ fn main() {
     // // printing info
     // println!("{:13.3} sec ", rd_time.elapsed().as_secs_f64());
     println!("----------------------------------------------------------------------------------------------");
-    println!("length of basis: {}", basis.elements
-        .into_iter()
-        .filter(|x| x.is_redundant == false)
-        .collect::<Vec<_>>()
-        .len());
+    println!("length of basis: {}", basis.leading_ideal.len());
     println!("----------------------------------------------------------------------------------------------");
     println!("hash table capacity: {}", hash_table.length.ilog2());
     println!("hash table insert data: {} -> {} ({:3.3}%) -> {} ({:3.3}%)", hash_table.nr_in,

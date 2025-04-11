@@ -117,28 +117,15 @@ impl Matrix {
 
     fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
 
-        // get list of all lms and divmask
-        let mut divisor_data_vec: 
-            Vec<(DivisorMask,HashTableLength,BasisLength)> = Vec::new();
-        for i in 0..basis.elements.len() {
-            if basis.elements[i].is_redundant == false {
-                divisor_data_vec.push((
-                    hash_table.divisor_masks[basis.elements[i].monomials[0] as usize],
-                    basis.elements[i].monomials[0],
-                    i as BasisLength));
-            }
-        }
-        let mut new_pivot_data: Vec<(BasisLength, ExpVec)> = Vec::new();
-
         for i in 0..self.todo.len() {
             for j in 0..self.todo[i].columns.len() {
                 let c = self.todo[i].columns[j] as usize;
                 if hash_table.indices[c] == 0 {
                     hash_table.indices[c] = 1;
                     self.columns.push(c as HashTableLength);
-                    match hash_table.find_divisor(c as HashTableLength, &divisor_data_vec, &basis) {
+                    match hash_table.find_divisor(c as HashTableLength, &basis) {
                         Some((divisor_idx, multiplier)) =>
-                         { self.add_pivot(divisor_idx, &multiplier, basis, hash_table); //new_pivot_data.push((divisor_idx, multiplier));
+                         { self.add_pivot(divisor_idx, &multiplier, basis, hash_table);
                            hash_table.indices[c] = 2 },
                         None => continue,
                     }
@@ -154,9 +141,9 @@ impl Matrix {
                 if hash_table.indices[c] == 0 {
                     hash_table.indices[c] = 1;
                     self.columns.push(c as HashTableLength);
-                    match hash_table.find_divisor(c as HashTableLength, &divisor_data_vec, &basis) {
+                    match hash_table.find_divisor(c as HashTableLength, &basis) {
                         Some((divisor_idx, multiplier)) =>
-                         { self.add_pivot(divisor_idx, &multiplier, basis, hash_table); //new_pivot_data.push((divisor_idx, multiplier));
+                         { self.add_pivot(divisor_idx, &multiplier, basis, hash_table);
                            hash_table.indices[c] = 2 },
                         None => continue,
                     }
@@ -164,31 +151,6 @@ impl Matrix {
             }
             i += 1;
         }
-        // for np in new_pivot_data {
-        //     self.add_pivot(np.0, &np.1, basis, hash_table);
-        // }
-        // let mut curr_nr_pivs = 0;
-        // while curr_nr_pivs < self.pivots.len() {
-        //     let mut new_pivot_data: Vec<(BasisLength, ExpVec)> = Vec::new();
-        //     for pivots in &self.pivots[curr_nr_pivs..self.pivots.len()] {
-        //         for c in &pivots.columns {
-        //             if hash_table.indices[*c as usize] == 0 {
-        //                 hash_table.indices[*c as usize] = 1;
-        //                 self.columns.push(*c);
-        //                 match hash_table.find_divisor(*c, &divisor_data_vec, &basis) {
-        //                     Some((divisor_idx, multiplier)) =>
-        //                      { new_pivot_data.push((divisor_idx, multiplier));
-        //                        hash_table.indices[*c as usize] = 2 },
-        //                     None => continue,
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     curr_nr_pivs = self.pivots.len();
-        //     for np in new_pivot_data {
-        //         self.add_pivot(np.0, &np.1, basis, hash_table);
-        //     }
-        // }
     }
 
     fn convert_hashes_to_columns(&mut self, hash_table: &mut HashTable) {
@@ -303,7 +265,7 @@ impl Matrix {
             Element {
                 coefficients: cfs,
                 monomials: Vec::new(),
-                is_redundant: false,});
+                });
     }
 
     fn reduce_row(&mut self, idx: usize, basis: &mut Basis) {

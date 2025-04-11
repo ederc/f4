@@ -14,7 +14,6 @@ use crate::hash_table::{
 pub struct Element {
     pub coefficients: CoeffVec,
     pub monomials: MonomVec,
-    pub is_redundant: bool,
 }
 
 pub struct Basis {
@@ -25,6 +24,7 @@ pub struct Basis {
     pub elements: Vec<Element>,
     nr_redundant_elements: usize,
     nr_input_generators: usize,
+    pub leading_ideal: Vec<LeadingIdealElement>,
 }
 
 impl Basis {
@@ -43,6 +43,7 @@ impl Basis {
             elements             : Vec::new(),
             nr_redundant_elements: 0,
             nr_input_generators  : coefficients.len(),
+            leading_ideal        : Vec::new(),
         };
         basis.add_initial_elements(hash_table, coefficients, exponents);
         basis.sort_terms_by_drl(hash_table);
@@ -77,7 +78,7 @@ impl Basis {
             self.elements.push(Element {
                 coefficients: c.iter().map(|a| *a % self.characteristic as Coefficient).collect(),
                 monomials: e.iter().map(|a| { hash_table.exponent_buffer = a.to_vec(); hash_table.insert() }).collect(),
-                is_redundant: false});
+            } );
         }
     }
     fn sort_terms_by_drl(&mut self, hash_table: &HashTable) {
@@ -116,26 +117,30 @@ impl Basis {
             hash_table.degrees[self.elements[
                 self.elements.len()-1].monomials[0] as usize]);
 
-        // check redundancy due to resp. of new basis elements
-        for i in (self.previous_length as usize)..self.elements.len() {
-            for j in 0..i {
-                if !self.elements[j].is_redundant
-                    && hash_table.divides_pairs(
-                        self.elements[i].monomials[0],
-                        self.elements[j].monomials[0]) {
-                        self.elements[j].is_redundant = true;
-                }
-            }
-            for j in (self.previous_length as usize)..i {
-                if !self.elements[j].is_redundant
-                    && hash_table.divides_pairs(
-                        self.elements[j].monomials[0],
-                        self.elements[i].monomials[0]) {
-                        self.elements[i].is_redundant = true;
-                        break;
-                }
+        // check redundancy due to new basis elements
+        let mut new_non_redundant = vec!(self.previous_length;1);
+        for i in (self.previous_length+1) as usize..self.elements.len() {
+            let mon_i = self.elements[i].monomials[0];
+            if self.elements[self.previous_length as usize..i].iter().all(|e|
+                hash_table.divides_pairs(e.monomials[0], mon_i) == false) {
+                new_non_redundant.push(i as BasisLength);
             }
         }
+        self.leading_ideal
+            .retain(|x| new_non_redundant.iter()
+                .all(|&n| hash_table.divides_pairs(self.elements[n as usize].monomials[0],
+                        self.elements[x.2 as usize].monomials[0]) == false));
+
+        // add new non redundant elements to leading ideal
+        for n in new_non_redundant {
+            self.leading_ideal.push(
+                    (hash_table.divisor_masks[self.elements[n as usize].monomials[0] as usize],
+                    self.elements[n as usize].monomials[0],
+                    n));
+        }
+
+        self.leading_ideal.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.1, b.1));
+
 
         // update range for newly added elements
         self.previous_length = self.elements.len() as BasisLength;

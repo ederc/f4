@@ -213,13 +213,12 @@ impl HashTable {
         return ea.into_iter().zip(eb).all(|(a,b)| *a <= *b);
     }
 
-    pub fn find_divisor(&mut self, mon: HashTableLength,
-            divisor_data_vec: &[(DivisorMask,HashTableLength,BasisLength)],basis: &Basis)
+    pub fn find_divisor(&mut self, mon: HashTableLength, basis: &Basis)
         -> Option<(BasisLength, ExpVec)> {
         // let divisor_data = divisor_data_vec.as_slice();
         let ndmon = !&self.divisor_masks[mon as usize];
         let mon_exp_vec = &self.exponents[mon as usize];
-        for d in divisor_data_vec {
+        for d in &basis.leading_ideal {
             if self.divides_pre(d.1, d.0, mon_exp_vec, ndmon) {
                 return Some((d.2, self.get_difference(mon, d.1)));
             }
