@@ -5,7 +5,7 @@ pub type ExpVec = Vec<Exponent>;
 // Hash table stuff
 pub type HashValue = u32;
 pub type HashTableLength = u32;
-pub type DivisorMask = u64;
+pub type DivisorMask = usize;
 pub type MonomVec = Vec<HashTableLength>;
 
 // Field stuff
@@ -16,6 +16,7 @@ pub type CoeffVec = Vec<Coefficient>;
 // Basis stuff
 pub type Degree = u32;
 pub type BasisLength = u32;
+pub type LeadingIdealElement = (DivisorMask, HashTableLength, BasisLength);
 
 // Matrix stuff
 pub type DenseRowCoefficient = i64;
