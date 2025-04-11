@@ -473,24 +473,16 @@ mod tests {
         let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3]];
         let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3], vec![1,1]], vec![vec![0,2], vec![1,1]]];
         let mut hash_table = HashTable::new(&exps);
-        let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
+        let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         hash_table.exponent_buffer = vec![0,4];
         let mon1 = hash_table.insert();
-        let mut divs: Vec<(DivisorMask,HashTableLength,BasisLength)> = Vec::new();
-        for i in 0..basis.elements.len() {
-            if basis.elements[i].is_redundant == false {
-                divs.push((
-                    hash_table.divisor_masks[basis.elements[i].monomials[0] as usize],
-                    basis.elements[i].monomials[0],
-                    i as BasisLength));
-            }
-        }
+        basis.update_data(&hash_table);
         let multiplier: ExpVec = vec![0, 1];
-        assert_eq!(hash_table.find_divisor(mon1, &divs, &basis), Some((1, multiplier)));
+        assert_eq!(hash_table.find_divisor(mon1, &basis), Some((1, multiplier)));
         assert_eq!(hash_table.exponents.len(), 4);
         hash_table.exponent_buffer = vec![5,0];
         let mon2 = hash_table.insert();
-        assert_eq!(hash_table.find_divisor(mon2, &divs, &basis), None);
+        assert_eq!(hash_table.find_divisor(mon2, &basis), None);
     }
     #[test]
     fn test_generate_divisor_bounds() {
