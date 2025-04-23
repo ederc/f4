@@ -223,7 +223,83 @@ impl Matrix {
         self.link_pivots_to_columns();
     }
 
+
     fn apply_reducer(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
+        #[cfg(target_arch = "aarch64")]
+        unsafe { self.apply_reducer_aarch64(dense_row, col_idx, basis) };
+        #[cfg(not(target_arch = "aarch64"))]
+        self.apply_reducer_no_simd(dense_row, col_idx, basis);
+    }
+
+    #[cfg(any(target_arch = "aarch64"))]
+    unsafe fn apply_reducer_aarch64(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
+        use std::arch::aarch64::*;
+
+        let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
+
+        let reducer = &self.pivots[self.pivot_lookup[col_idx]];
+        let reducer_coefficients =
+            &basis.elements[reducer.basis_index as usize].coefficients;
+        let reducer_columns = &reducer.columns;
+        debug_assert!(
+            reducer_columns.len() == reducer_coefficients.len());
+
+        let multiplier = dense_row[col_idx];
+
+        let offset = reducer_columns.len() % 4;
+
+        // update dense row applying multiplied reducer
+        // up to offset before starting with neon code
+        reducer_columns[..offset]
+            .iter().zip(&reducer_coefficients[..offset]).for_each(|(a,b)|
+                multiply_add_with_check(
+                    &mut dense_row[*a as usize], multiplier, *b as DenseRowCoefficient, characteristic_2));
+
+        // start of neon code
+        let characteristic_2_v: int64x2_t = vmovq_n_s64(characteristic_2);
+        let multiplier_v: int32x2_t = vmov_n_s32(multiplier as i32);
+
+        let mut i = offset;
+        let mut tmp = [0 as i64; 2];
+        let raw_tmp = &mut tmp as *mut i64;
+        let mut dense_row_v: int64x2_t = vld1q_s64(raw_tmp);
+        let mut result_v: int64x2_t = vld1q_s64(raw_tmp);
+        let mut reducer_coefficients_v: int32x4_t = vld1q_s32(reducer_coefficients.as_ptr());
+
+        while i < reducer_columns.len() {
+            tmp[0] = dense_row[reducer_columns[i] as usize];
+            tmp[1] = dense_row[reducer_columns[i+1] as usize];
+            dense_row_v = vld1q_s64(tmp.as_ptr());
+            reducer_coefficients_v =
+                vld1q_s32(reducer_coefficients[i..i+4].as_ptr());
+            /* multiply and subtract */
+            result_v = vmlsl_s32(
+                    dense_row_v,
+                    vget_low_s32(reducer_coefficients_v), multiplier_v);
+            // let mask: int64x2_t  = vreinterpretq_s64_u64(vcltzq_s64(result_v));
+            // vst1q_s64(raw_tmp, vaddq_s64(result_v, vandq_s64(mask, characteristic_2_v)));
+            vst1q_s64(raw_tmp, vaddq_s64(result_v,
+                    vandq_s64(vreinterpretq_s64_u64(vcltzq_s64(result_v)), characteristic_2_v)));
+            dense_row[reducer_columns[i] as usize]   = tmp[0];
+            dense_row[reducer_columns[i+1] as usize] = tmp[1];
+            tmp[0] = dense_row[reducer_columns[i+2] as usize];
+            tmp[1] = dense_row[reducer_columns[i+3] as usize];
+            dense_row_v = vld1q_s64(tmp.as_ptr());
+            /* multiply and subtract */
+            result_v = vmlsl_s32(
+                    dense_row_v,
+                    vget_high_s32(reducer_coefficients_v), multiplier_v);
+            // let mask: int64x2_t  = vreinterpretq_s64_u64(vcltzq_s64(result_v));
+            vst1q_s64(raw_tmp, vaddq_s64(result_v,
+                    vandq_s64(vreinterpretq_s64_u64(vcltzq_s64(result_v)), characteristic_2_v)));
+            dense_row[reducer_columns[i+2] as usize] = tmp[0];
+            dense_row[reducer_columns[i+3] as usize] = tmp[1];
+
+            i += 4;
+        }
+    }
+
+    fn apply_reducer_no_simd(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
         let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
         let reducer = &self.pivots[self.pivot_lookup[col_idx]];
         let reducer_coefficients =
