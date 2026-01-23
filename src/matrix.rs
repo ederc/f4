@@ -1,26 +1,19 @@
-use std::collections::HashSet;
-use std::io::Write;
-use std::io::stdout;
+use itertools::Itertools;
 use rayon::prelude::*;
+use std::collections::HashSet;
+use std::ffi::CString;
+use std::io::stdout;
+use std::io::Write;
 
-use crate::arithmetic::i32::{
-    modular_inverse,
-};
+use crate::arithmetic::i32::modular_inverse;
 
 use crate::primitives::*;
 
-use crate::pairs::{
-    PairSet,
-};
+use crate::pairs::PairSet;
 
-use crate::hash_table::{
-    HashTable,
-};
+use crate::hash_table::HashTable;
 
-use crate::basis::{
-    Basis,
-    Element,
-};
+use crate::basis::{Basis, Element};
 
 struct Row {
     basis_index: BasisLength,
@@ -39,10 +32,10 @@ pub struct Matrix {
 impl Matrix {
     pub fn new() -> Matrix {
         let mat = Matrix {
-            pivots  : Vec::new(),
-            todo    : Vec::new(),
-            columns : Vec::new(),
-            pivot_lookup : Vec::new(),
+            pivots: Vec::new(),
+            todo: Vec::new(),
+            columns: Vec::new(),
+            pivot_lookup: Vec::new(),
             nr_known_pivots: 0,
             density: 0.0,
         };
@@ -50,19 +43,26 @@ impl Matrix {
         return mat;
     }
 
-    fn get_next_bunch_of_pairs(&mut self, basis: &Basis, pairs: &mut PairSet,
-        hash_table: &mut HashTable) {
-
+    fn get_next_bunch_of_pairs(
+        &mut self,
+        basis: &Basis,
+        pairs: &mut PairSet,
+        hash_table: &mut HashTable,
+    ) {
         let mut next_pairs = pairs.select_pairs_by_minimal_degree(hash_table);
         debug_assert!(next_pairs.len() > 0);
 
-        print!("{:3} {:7} {:7} ", hash_table.degrees[next_pairs[0].lcm as usize],
-            next_pairs.len(), next_pairs.len() + pairs.list.len());
-            next_pairs.sort_by(|a,b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
+        print!(
+            "{:3} {:7} {:7} ",
+            hash_table.degrees[next_pairs[0].lcm as usize],
+            next_pairs.len(),
+            next_pairs.len() + pairs.list.len()
+        );
+        next_pairs.sort_by(|a, b| hash_table.cmp_monomials_by_drl(a.lcm, b.lcm));
         stdout().flush().unwrap();
         let mut start = 0;
         let mut gens = HashSet::new();
-        while start < next_pairs.len()  {
+        while start < next_pairs.len() {
             let first_generator = next_pairs[start].generators.1;
             let lcm = next_pairs[start].lcm;
             // set index of lcm as done since we have at least a second generator
@@ -72,22 +72,23 @@ impl Matrix {
             let stop = next_pairs[start..]
                 .iter()
                 .position(|p| p.lcm != lcm)
-                .unwrap_or(next_pairs.len()-start) + start;
+                .unwrap_or(next_pairs.len() - start)
+                + start;
 
             gens.insert(next_pairs[start].generators.0);
-            for i in start+1..stop {
+            for i in start + 1..stop {
                 gens.insert(next_pairs[i].generators.1);
                 gens.insert(next_pairs[i].generators.0);
             }
             debug_assert!(gens.len() > 0);
-            let multiplier = hash_table.get_difference(
-                lcm, basis.elements[first_generator as usize].monomials[0]);
+            let multiplier = hash_table
+                .get_difference(lcm, basis.elements[first_generator as usize].monomials[0]);
             self.add_pivot(first_generator, &multiplier, basis, hash_table);
 
             gens.remove(&first_generator);
             for g in &gens {
-                let multiplier = hash_table.get_difference(
-                    lcm, basis.elements[*g as usize].monomials[0]);
+                let multiplier =
+                    hash_table.get_difference(lcm, basis.elements[*g as usize].monomials[0]);
                 self.add_todo(*g, &multiplier, basis, hash_table);
             }
             start = stop;
@@ -95,28 +96,35 @@ impl Matrix {
         }
     }
 
-    fn add_pivot(&mut self,
-        divisor_idx: BasisLength, multiplier: &[Exponent],
-        basis: &Basis, hash_table: &mut HashTable) {
-
-        let mult_mons = hash_table.generate_multiplied_monomials(
-            divisor_idx, &multiplier, basis);
-        self.pivots.push(
-            Row { basis_index : divisor_idx, columns : mult_mons} );
+    fn add_pivot(
+        &mut self,
+        divisor_idx: BasisLength,
+        multiplier: &[Exponent],
+        basis: &Basis,
+        hash_table: &mut HashTable,
+    ) {
+        let mult_mons = hash_table.generate_multiplied_monomials(divisor_idx, &multiplier, basis);
+        self.pivots.push(Row {
+            basis_index: divisor_idx,
+            columns: mult_mons,
+        });
     }
 
-    fn add_todo(&mut self,
-        divisor_idx: BasisLength, multiplier: &[Exponent],
-        basis: &Basis, hash_table: &mut HashTable) {
-
-        let mult_mons = hash_table.generate_multiplied_monomials(
-            divisor_idx, multiplier, basis);
-        self.todo.push(
-            Row { basis_index : divisor_idx, columns : mult_mons} );
+    fn add_todo(
+        &mut self,
+        divisor_idx: BasisLength,
+        multiplier: &[Exponent],
+        basis: &Basis,
+        hash_table: &mut HashTable,
+    ) {
+        let mult_mons = hash_table.generate_multiplied_monomials(divisor_idx, multiplier, basis);
+        self.todo.push(Row {
+            basis_index: divisor_idx,
+            columns: mult_mons,
+        });
     }
 
     fn get_reducers(&mut self, basis: &Basis, hash_table: &mut HashTable) {
-
         for i in 0..self.todo.len() {
             for j in 0..self.todo[i].columns.len() {
                 let c = self.todo[i].columns[j] as usize;
@@ -124,9 +132,10 @@ impl Matrix {
                     hash_table.indices[c] = 1;
                     self.columns.push(c as HashTableLength);
                     match hash_table.find_divisor(c as HashTableLength, &basis) {
-                        Some((divisor_idx, multiplier)) =>
-                         { self.add_pivot(divisor_idx, &multiplier, basis, hash_table);
-                           hash_table.indices[c] = 2 },
+                        Some((divisor_idx, multiplier)) => {
+                            self.add_pivot(divisor_idx, &multiplier, basis, hash_table);
+                            hash_table.indices[c] = 2
+                        }
                         None => continue,
                     }
                 }
@@ -142,9 +151,10 @@ impl Matrix {
                     hash_table.indices[c] = 1;
                     self.columns.push(c as HashTableLength);
                     match hash_table.find_divisor(c as HashTableLength, &basis) {
-                        Some((divisor_idx, multiplier)) =>
-                         { self.add_pivot(divisor_idx, &multiplier, basis, hash_table);
-                           hash_table.indices[c] = 2 },
+                        Some((divisor_idx, multiplier)) => {
+                            self.add_pivot(divisor_idx, &multiplier, basis, hash_table);
+                            hash_table.indices[c] = 2
+                        }
                         None => continue,
                     }
                 }
@@ -154,24 +164,22 @@ impl Matrix {
     }
 
     fn convert_hashes_to_columns(&mut self, hash_table: &mut HashTable) {
-
         self.nr_known_pivots = self.pivots.len();
         // set colum index for corresponding monomial hash in hash table
-        self.columns.sort_by(|a,b| hash_table.cmp_monomials_by_index_then_drl(*b, *a));
+        self.columns
+            .sort_by(|a, b| hash_table.cmp_monomials_by_index_then_drl(*b, *a));
         for i in 0..self.columns.len() {
             hash_table.indices[self.columns[i] as usize] = i as HashTableLength;
         }
         // map hashes to columns in matrix
         for i in 0..self.todo.len() {
             for j in 0..self.todo[i].columns.len() {
-                self.todo[i].columns[j] =
-                    hash_table.indices[self.todo[i].columns[j] as usize];
+                self.todo[i].columns[j] = hash_table.indices[self.todo[i].columns[j] as usize];
             }
         }
         for i in 0..self.pivots.len() {
             for j in 0..self.pivots[i].columns.len() {
-                self.pivots[i].columns[j] =
-                    hash_table.indices[self.pivots[i].columns[j] as usize];
+                self.pivots[i].columns[j] = hash_table.indices[self.pivots[i].columns[j] as usize];
             }
         }
         // reset indices
@@ -181,21 +189,26 @@ impl Matrix {
     }
 
     fn get_density(&mut self) {
-        let mat_size = (self.todo.len()+self.pivots.len()) * self.columns.len();
-        let mut nr_nonzero_elements: usize = self.pivots.iter().map(|x| x.columns.len()).sum::<usize>();
+        let mat_size = (self.todo.len() + self.pivots.len()) * self.columns.len();
+        let mut nr_nonzero_elements: usize =
+            self.pivots.iter().map(|x| x.columns.len()).sum::<usize>();
         nr_nonzero_elements += self.todo.iter().map(|x| x.columns.len()).sum::<usize>();
         self.density = nr_nonzero_elements as f64 / mat_size as f64 * 100.0;
     }
 
     fn link_pivots_to_columns(&mut self) {
-        self.pivot_lookup = vec!(usize::MAX; self.columns.len());
+        self.pivot_lookup = vec![usize::MAX; self.columns.len()];
 
         for i in 0..self.pivots.len() {
             self.pivot_lookup[self.pivots[i].columns[0] as usize] = i;
         }
         self.get_density();
-        print!(" {:7} x {:<7} {:8.2}%", self.todo.len()+self.pivots.len(),
-            self.columns.len(), self.density);
+        print!(
+            " {:7} x {:<7} {:8.2}%",
+            self.todo.len() + self.pivots.len(),
+            self.columns.len(),
+            self.density
+        );
         stdout().flush().unwrap();
     }
 
@@ -213,38 +226,183 @@ impl Matrix {
     //     self.reduce
     // }
 
-    pub fn preprocessing(&mut self, basis: &Basis,
-        pairs: &mut PairSet, hash_table: &mut HashTable) {
-
+    pub fn preprocessing(
+        &mut self,
+        basis: &Basis,
+        pairs: &mut PairSet,
+        hash_table: &mut HashTable,
+    ) {
         self.get_next_bunch_of_pairs(basis, pairs, hash_table);
         self.get_reducers(basis, hash_table);
         self.convert_hashes_to_columns(hash_table);
-        self.pivots.sort_by(|a,b| b.columns[0].cmp(&a.columns[0]));
+        self.pivots.sort_by(|a, b| b.columns[0].cmp(&a.columns[0]));
         self.link_pivots_to_columns();
     }
 
     fn apply_reducer(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
         let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
         let reducer = &self.pivots[self.pivot_lookup[col_idx]];
-        let reducer_coefficients =
-            &basis.elements[reducer.basis_index as usize].coefficients;
+        let reducer_coefficients = &basis.elements[reducer.basis_index as usize].coefficients;
         let reducer_columns = &reducer.columns;
-        debug_assert!(
-            reducer_columns.len() == reducer_coefficients.len());
+        debug_assert!(reducer_columns.len() == reducer_coefficients.len());
 
         let multiplier = dense_row[col_idx];
 
+        // for i in (0..reducer_columns.len()).to_vec().chunks(2) {
+        //     let col = reducer_columns[i.0 as usize];
+        //     dense_row[col] -= multiplier * reducer_coefficients[i] as i64;
+        //     dense_row[col] += (dense_row[col] >> 63) & characteristic_2;
+        // }
+        // for (i, c) in reducer_columns.into_iter().enumerate() {
+        //     dense_row[*c as usize] -= multiplier * reducer_coefficients[i] as i64;
+        //     dense_row[*c as usize] += (dense_row[*c as usize] >> 63) & characteristic_2;
+        // }
         // update dense row applying multiplied reducer
-        reducer_columns
-            .iter().zip(reducer_coefficients).for_each(|(a,b)|
+        // for i in (0..reducer_columns.len()).chunks(2) {}
+        // for (r, c) in (reducer_columns, reducer_coefficients).into_iter() {
+        //     dense_row[r as usize] = dense_row[r as usize] - multiplier * c as i64;
+        //     dense_row[r as usize] = (dense_row[r as usize] >> 63) & characteristic_2;
+        // }
+        //
+        // let cs = 4;
+        // for i in 0..reducer_columns.len() {
+        //     let idx = reducer_columns[i] as usize;
+        //     dense_row[idx] -= multiplier * reducer_coefficients[i] as DenseRowCoefficient;
+        //     dense_row[idx] += (dense_row[idx] >> 63) & characteristic_2;
+        // }
+
+        // let a = reducer_columns;
+        // let b = reducer_coefficients;
+
+        let cs = 8;
+        // let of = reducer_columns.len();
+
+        // for i in 0..of {
+        //     multiply_add_with_check(
+        //         &mut dense_row[a[i] as usize],
+        //         multiplier,
+        //         b[i] as DenseRowCoefficient,
+        //         characteristic_2,
+        //     );
+        // }
+        // for i in (of..reducer_columns.len()).step_by(cs) {
+        //     multiply_add_with_check(
+        //         &mut dense_row[a[i] as usize],
+        //         multiplier,
+        //         b[i] as DenseRowCoefficient,
+        //         characteristic_2,
+        //     );
+
+        //     multiply_add_with_check(
+        //         &mut dense_row[a[i + 1] as usize],
+        //         multiplier,
+        //         b[i + 1] as DenseRowCoefficient,
+        //         characteristic_2,
+        //     );
+
+        //     multiply_add_with_check(
+        //         &mut dense_row[a[i + 2] as usize],
+        //         multiplier,
+        //         b[i + 2] as DenseRowCoefficient,
+        //         characteristic_2,
+        //     );
+
+        //     multiply_add_with_check(
+        //         &mut dense_row[a[i + 3] as usize],
+        //         multiplier,
+        //         b[i + 3] as DenseRowCoefficient,
+        //         characteristic_2,
+        //     );
+        // multiply_add_with_check(
+        //     &mut dense_row[a[i + 4] as usize],
+        //     multiplier,
+        //     b[i + 4] as DenseRowCoefficient,
+        //     characteristic_2,
+        // );
+
+        // multiply_add_with_check(
+        //     &mut dense_row[a[i + 5] as usize],
+        //     multiplier,
+        //     b[i + 5] as DenseRowCoefficient,
+        //     characteristic_2,
+        // );
+
+        // multiply_add_with_check(
+        //     &mut dense_row[a[i + 6] as usize],
+        //     multiplier,
+        //     b[i + 6] as DenseRowCoefficient,
+        //     characteristic_2,
+        // );
+
+        // multiply_add_with_check(
+        //     &mut dense_row[a[i + 7] as usize],
+        //     multiplier,
+        //     b[i + 7] as DenseRowCoefficient,
+        //     characteristic_2,
+        // );
+        // }
+        // for (a, b) in reducer_columns[0..of]
+        //     .iter()
+        //     .zip(reducer_coefficients[0..of])
+        // {
+        //     // println!("{:?} -> {:?}", a, b);
+        //     // let mut tmp = dense_row[a[0] as usize] - multiplier * b[0] as i64;
+        //     // tmp += (tmp >> 63) & characteristic_2;
+        //     // dense_row[a[0] as usize] = tmp;
+        //     multiply_add_with_check(
+        //         &mut dense_row[a as usize],
+        //         multiplier,
+        //         b as DenseRowCoefficient,
+        //         characteristic_2,
+        //     );
+        // }
+        for (a, b) in reducer_columns
+            .chunks_exact(cs)
+            .zip(reducer_coefficients.chunks_exact(cs))
+        {
+            // println!("{:?} -> {:?}", a, b);
+            // let mut tmp = dense_row[a[0] as usize] - multiplier * b[0] as i64;
+            // tmp += (tmp >> 63) & characteristic_2;
+            // dense_row[a[0] as usize] = tmp;
+            for i in 0..cs {
                 multiply_add_with_check(
-                    &mut dense_row[*a as usize], multiplier, *b as DenseRowCoefficient, characteristic_2));
+                    &mut dense_row[a[i] as usize],
+                    multiplier,
+                    b[i] as DenseRowCoefficient,
+                    characteristic_2,
+                );
+            }
+        }
+        for (a, b) in reducer_columns
+            .chunks_exact(cs)
+            .remainder()
+            .iter()
+            .zip(reducer_coefficients.chunks_exact(cs).remainder())
+        {
+            // println!("{:?} -> {:?}", a, b);
+            // let mut tmp = dense_row[a[0] as usize] - multiplier * b[0] as i64;
+            // tmp += (tmp >> 63) & characteristic_2;
+            // dense_row[a[0] as usize] = tmp;
+            multiply_add_with_check(
+                &mut dense_row[*a as usize],
+                multiplier,
+                *b as DenseRowCoefficient,
+                characteristic_2,
+            );
+        }
     }
 
-    fn update_interreduced_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
-
+    fn update_interreduced_pivot(
+        &mut self,
+        dense_row: DenseRow,
+        col_idx: usize,
+        basis: &mut Basis,
+    ) {
         let (cols, cfs) = generate_sparse_row_from_dense_row(
-            dense_row, col_idx, basis.characteristic as DenseRowCoefficient);
+            dense_row,
+            col_idx,
+            basis.characteristic as DenseRowCoefficient,
+        );
 
         let pivot_idx = self.pivot_lookup[col_idx];
         self.pivots[pivot_idx].columns = cols;
@@ -252,26 +410,26 @@ impl Matrix {
     }
 
     fn add_new_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
-
         let (cols, cfs) = generate_sparse_row_from_dense_row(
-            dense_row, col_idx, basis.characteristic as DenseRowCoefficient);
+            dense_row,
+            col_idx,
+            basis.characteristic as DenseRowCoefficient,
+        );
 
-        self.pivots.push(
-            Row {
-                basis_index: basis.elements.len() as BasisLength,
-                columns: cols,});
-        self.pivot_lookup[col_idx] = self.pivots.len()-1;
-        basis.elements.push(
-            Element {
-                coefficients: cfs,
-                monomials: Vec::new(),
-                });
+        self.pivots.push(Row {
+            basis_index: basis.elements.len() as BasisLength,
+            columns: cols,
+        });
+        self.pivot_lookup[col_idx] = self.pivots.len() - 1;
+        basis.elements.push(Element {
+            coefficients: cfs,
+            monomials: Vec::new(),
+        });
     }
 
     fn reduce_row(&mut self, idx: usize, basis: &mut Basis) {
-
         let row = &self.todo[idx];
-        let mut dense_row: DenseRow = vec!(0; self.columns.len());
+        let mut dense_row: DenseRow = vec![0; self.columns.len()];
 
         let cfs = &basis.elements[row.basis_index as usize].coefficients;
         debug_assert!(cfs.len() == row.columns.len());
@@ -279,9 +437,9 @@ impl Matrix {
         let characteristic = basis.characteristic as DenseRowCoefficient;
 
         let start_column = row.columns[0] as usize;
-        let last_column  = self.columns.len();
+        let last_column = self.columns.len();
 
-        for (i,c) in row.columns.iter().enumerate() {
+        for (i, c) in row.columns.iter().enumerate() {
             dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
         }
 
@@ -307,21 +465,20 @@ impl Matrix {
     }
 
     fn interreduce_row(&mut self, idx: usize, basis: &mut Basis) {
-
         let row = &self.pivots[idx];
         if row.columns.len() > 1 {
-            let mut dense_row: DenseRow = vec!(0; self.columns.len());
+            let mut dense_row: DenseRow = vec![0; self.columns.len()];
 
             let cfs = &basis.elements[row.basis_index as usize].coefficients;
             debug_assert!(cfs.len() == row.columns.len());
 
             let characteristic = basis.characteristic as DenseRowCoefficient;
 
-            let pivot_index  = row.columns[0] as usize;
-            let start_column = row.columns[0+1] as usize;
-            let last_column  = self.columns.len();
+            let pivot_index = row.columns[0] as usize;
+            let start_column = row.columns[0 + 1] as usize;
+            let last_column = self.columns.len();
 
-            for (i,c) in row.columns.iter().enumerate() {
+            for (i, c) in row.columns.iter().enumerate() {
                 dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
             }
 
@@ -340,7 +497,6 @@ impl Matrix {
     }
 
     pub fn reduce(&mut self, basis: &mut Basis) {
-
         // set previous basis length before adding new elements / pivots
         basis.previous_length = basis.elements.len() as BasisLength;
 
@@ -357,8 +513,8 @@ impl Matrix {
         let nr_known_pivots = self.nr_known_pivots;
         // sort newly found pivots by decreasing column index
         // to prepare interreduction process
-        self.pivots[nr_known_pivots..].sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
-        for (i,r) in self.pivots[nr_known_pivots..].iter().enumerate() {
+        self.pivots[nr_known_pivots..].sort_by(|a, b| a.columns[0].cmp(&b.columns[0]));
+        for (i, r) in self.pivots[nr_known_pivots..].iter().enumerate() {
             self.pivot_lookup[r.columns[0] as usize] = i + nr_known_pivots;
         }
 
@@ -369,39 +525,47 @@ impl Matrix {
     }
 
     pub fn postprocessing(&mut self, basis: &mut Basis, hash_table: &HashTable) {
-
-        print!(" {:9} new {:9} zero",
-            basis.elements.len() as i64 -basis.previous_length as i64,
-            self.todo.len() as i64 - basis.elements.len() as i64
-                + basis.previous_length as i64);
+        print!(
+            " {:9} new {:9} zero",
+            basis.elements.len() as i64 - basis.previous_length as i64,
+            self.todo.len() as i64 - basis.elements.len() as i64 + basis.previous_length as i64
+        );
         stdout().flush().unwrap();
         // change column indices to monomial hash table positions
-        self.pivots[self.nr_known_pivots..].iter_mut().for_each(|a|
-            a.columns.iter_mut().for_each(|b| *b = self.columns[*b as usize]));
+        self.pivots[self.nr_known_pivots..]
+            .iter_mut()
+            .for_each(|a| {
+                a.columns
+                    .iter_mut()
+                    .for_each(|b| *b = self.columns[*b as usize])
+            });
 
         // copy monomial data for new elements to basis
-        self.pivots[self.nr_known_pivots..].iter().for_each(|a|
-            basis.elements[a.basis_index as usize].monomials = a.columns.clone());
+        self.pivots[self.nr_known_pivots..]
+            .iter()
+            .for_each(|a| basis.elements[a.basis_index as usize].monomials = a.columns.clone());
 
         basis.elements[(basis.previous_length as usize)..]
-            .sort_by(|a,b| hash_table.cmp_monomials_by_drl(b.monomials[0], a.monomials[0]));
+            .sort_by(|a, b| hash_table.cmp_monomials_by_drl(b.monomials[0], a.monomials[0]));
     }
 }
 
+#[inline(always)]
 fn multiply_add_with_check(
     coeff: &mut DenseRowCoefficient,
     multiplier: DenseRowCoefficient,
     reducer: DenseRowCoefficient,
-    characteristic_squared: DenseRowCoefficient) {
-
+    characteristic_squared: DenseRowCoefficient,
+) {
     *coeff -= multiplier * reducer;
     *coeff += (*coeff >> 63) & characteristic_squared;
 }
 
 fn generate_sparse_row_from_dense_row(
-    dense_row: DenseRow, col_idx: usize, characteristic: DenseRowCoefficient)
-    -> (MonomVec, CoeffVec) {
-
+    dense_row: DenseRow,
+    col_idx: usize,
+    characteristic: DenseRowCoefficient,
+) -> (MonomVec, CoeffVec) {
     let mut cols: MonomVec = Vec::new();
     let mut cfs: CoeffVec = Vec::new();
 
@@ -413,20 +577,19 @@ fn generate_sparse_row_from_dense_row(
         for (i, c) in dense_row[col_idx..].iter().enumerate() {
             if *c != 0 {
                 cfs.push(((inv * *c) % characteristic) as Coefficient);
-                cols.push((i+col_idx) as HashTableLength);
+                cols.push((i + col_idx) as HashTableLength);
             }
         }
     } else {
         for (i, c) in dense_row[col_idx..].iter().enumerate() {
             if *c != 0 {
                 cfs.push(*c as Coefficient);
-                cols.push((i+col_idx) as HashTableLength);
+                cols.push((i + col_idx) as HashTableLength);
             }
         }
     }
     return (cols, cfs);
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -434,16 +597,18 @@ mod tests {
 
     #[test]
     fn test_get_density() {
-        let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-        vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-        vec![vec![0,0,1], vec![0,0,0]]];
+        let fc: Characteristic = 65521;
+        let cfs: Vec<CoeffVec> = vec![vec![-2, 65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps: Vec<Vec<ExpVec>> = vec![
+            vec![vec![0, 3, 1], vec![1, 1, 0]],
+            vec![vec![0, 2, 0], vec![1, 1, 0]],
+            vec![vec![0, 0, 2], vec![1, 0, 0]],
+            vec![vec![0, 0, 1], vec![0, 0, 0]],
+        ];
         let mut hash_table = HashTable::new(&exps);
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
-        let mult: ExpVec = vec![0,0,2];
+        let mult: ExpVec = vec![0, 0, 2];
         let mut matrix = Matrix::new();
         basis.update_data(&hash_table);
 
@@ -451,7 +616,9 @@ mod tests {
         matrix.get_reducers(&basis, &mut hash_table);
         matrix.convert_hashes_to_columns(&mut hash_table);
         assert_eq!(matrix.columns.len(), 8);
-        matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
+        matrix
+            .pivots
+            .sort_by(|a, b| a.columns[0].cmp(&b.columns[0]));
         matrix.link_pivots_to_columns();
         matrix.get_density();
         assert_eq!(matrix.density, 25.0);
@@ -461,7 +628,7 @@ mod tests {
         let mut coeff: DenseRowCoefficient = 100;
         let multiplier: DenseRowCoefficient = 2;
         let reducer: DenseRowCoefficient = 31;
-        let characteristic_squared: DenseRowCoefficient = 101*101;
+        let characteristic_squared: DenseRowCoefficient = 101 * 101;
 
         // without negative overflow
         multiply_add_with_check(&mut coeff, multiplier, reducer, characteristic_squared);
@@ -473,80 +640,93 @@ mod tests {
 
     #[test]
     fn test_generate_sparse_row_from_dense_row() {
-        let dense_row: DenseRow = [0,2,3,0,0,23].to_vec();
+        let dense_row: DenseRow = [0, 2, 3, 0, 0, 23].to_vec();
         let characteristic: DenseRowCoefficient = 101;
-        let (cols, cfs) = generate_sparse_row_from_dense_row(
-            dense_row, 1, characteristic);
-        assert_eq!(cols, [1,2,5]);
-        assert_eq!(cfs, [1,52,62]);
+        let (cols, cfs) = generate_sparse_row_from_dense_row(dense_row, 1, characteristic);
+        assert_eq!(cols, [1, 2, 5]);
+        assert_eq!(cfs, [1, 52, 62]);
     }
     #[test]
     fn test_interreduce_row() {
-        let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-        vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-        vec![vec![0,0,1], vec![0,0,0]]];
+        let fc: Characteristic = 65521;
+        let cfs: Vec<CoeffVec> = vec![vec![-2, 65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps: Vec<Vec<ExpVec>> = vec![
+            vec![vec![0, 3, 1], vec![1, 1, 0]],
+            vec![vec![0, 2, 0], vec![1, 1, 0]],
+            vec![vec![0, 0, 2], vec![1, 0, 0]],
+            vec![vec![0, 0, 1], vec![0, 0, 0]],
+        ];
         let mut hash_table = HashTable::new(&exps);
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
-        let mult: ExpVec = vec![0,0,2];
+        let mult: ExpVec = vec![0, 0, 2];
         let mut matrix = Matrix::new();
 
         basis.update_data(&hash_table);
         matrix.add_todo(3, &mult, &basis, &mut hash_table);
         matrix.get_reducers(&basis, &mut hash_table);
         matrix.convert_hashes_to_columns(&mut hash_table);
-        matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
+        matrix
+            .pivots
+            .sort_by(|a, b| a.columns[0].cmp(&b.columns[0]));
         matrix.link_pivots_to_columns();
         matrix.reduce_row(0, &mut basis);
         matrix.interreduce_row(0, &mut basis);
         assert_eq!(matrix.pivots.len(), 7);
-        assert_eq!(matrix.pivots[0].columns, [0,7]);
+        assert_eq!(matrix.pivots[0].columns, [0, 7]);
         assert_eq!(matrix.pivots[0].basis_index, 0);
         assert_eq!(
             basis.elements[matrix.pivots[0].basis_index as usize].coefficients,
-            [1,21840]);
+            [1, 21840]
+        );
     }
     #[test]
     fn test_reduce_row() {
-        let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-        vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-        vec![vec![0,0,1], vec![0,0,0]]];
+        let fc: Characteristic = 65521;
+        let cfs: Vec<CoeffVec> = vec![vec![-2, 65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps: Vec<Vec<ExpVec>> = vec![
+            vec![vec![0, 3, 1], vec![1, 1, 0]],
+            vec![vec![0, 2, 0], vec![1, 1, 0]],
+            vec![vec![0, 0, 2], vec![1, 0, 0]],
+            vec![vec![0, 0, 1], vec![0, 0, 0]],
+        ];
         let mut hash_table = HashTable::new(&exps);
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
-        let mult: ExpVec = vec![0,0,2];
+        let mult: ExpVec = vec![0, 0, 2];
         let mut matrix = Matrix::new();
 
         basis.update_data(&hash_table);
         matrix.add_todo(3, &mult, &basis, &mut hash_table);
         matrix.get_reducers(&basis, &mut hash_table);
         matrix.convert_hashes_to_columns(&mut hash_table);
-        matrix.pivots.sort_by(|a,b| a.columns[0].cmp(&b.columns[0]));
+        matrix
+            .pivots
+            .sort_by(|a, b| a.columns[0].cmp(&b.columns[0]));
         matrix.link_pivots_to_columns();
         matrix.reduce_row(0, &mut basis);
         assert_eq!(matrix.pivots.len(), 7);
-        assert_eq!(matrix.pivots[6].columns, [6,7]);
+        assert_eq!(matrix.pivots[6].columns, [6, 7]);
         assert_eq!(matrix.pivots[6].basis_index, 4);
-        assert_eq!(basis.elements[matrix.pivots[6].basis_index as usize].coefficients, [1,43681]);
+        assert_eq!(
+            basis.elements[matrix.pivots[6].basis_index as usize].coefficients,
+            [1, 43681]
+        );
     }
     #[test]
     fn test_convert_hashes_to_columns() {
-        let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-        vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-        vec![vec![0,0,1], vec![0,0,0]]];
+        let fc: Characteristic = 65521;
+        let cfs: Vec<CoeffVec> = vec![vec![-2, 65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps: Vec<Vec<ExpVec>> = vec![
+            vec![vec![0, 3, 1], vec![1, 1, 0]],
+            vec![vec![0, 2, 0], vec![1, 1, 0]],
+            vec![vec![0, 0, 2], vec![1, 0, 0]],
+            vec![vec![0, 0, 1], vec![0, 0, 0]],
+        ];
         let mut hash_table = HashTable::new(&exps);
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
         basis.update_data(&hash_table);
-        let mult: ExpVec = vec![1,1,0];
+        let mult: ExpVec = vec![1, 1, 0];
         let mut matrix = Matrix::new();
 
         matrix.add_todo(0, &mult, &basis, &mut hash_table);
@@ -566,15 +746,17 @@ mod tests {
     }
     #[test]
     fn test_get_reducers() {
-        let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-        vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-        vec![vec![0,0,1], vec![0,0,0]]];
+        let fc: Characteristic = 65521;
+        let cfs: Vec<CoeffVec> = vec![vec![-2, 65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps: Vec<Vec<ExpVec>> = vec![
+            vec![vec![0, 3, 1], vec![1, 1, 0]],
+            vec![vec![0, 2, 0], vec![1, 1, 0]],
+            vec![vec![0, 0, 2], vec![1, 0, 0]],
+            vec![vec![0, 0, 1], vec![0, 0, 0]],
+        ];
         let mut hash_table = HashTable::new(&exps);
         let mut basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
-        let mult: ExpVec = vec![1,1,0];
+        let mult: ExpVec = vec![1, 1, 0];
         let mut matrix = Matrix::new();
 
         basis.update_data(&hash_table);
@@ -583,60 +765,84 @@ mod tests {
 
         assert_eq!(matrix.todo.len(), 1);
         assert_eq!(matrix.todo[0].basis_index, 0);
-        assert_eq!(hash_table.exponents[matrix.todo[0].columns[0] as usize], [1,1,1]);
-        assert_eq!(hash_table.exponents[matrix.todo[0].columns[1] as usize], [1,1,0]);
+        assert_eq!(
+            hash_table.exponents[matrix.todo[0].columns[0] as usize],
+            [1, 1, 1]
+        );
+        assert_eq!(
+            hash_table.exponents[matrix.todo[0].columns[1] as usize],
+            [1, 1, 0]
+        );
         assert_eq!(matrix.pivots.len(), 2);
         assert_eq!(matrix.pivots[0].basis_index, 0);
-        assert_eq!(hash_table.exponents[matrix.pivots[0].columns[0] as usize], [1,1,1]);
-        assert_eq!(hash_table.exponents[matrix.pivots[0].columns[1] as usize], [1,1,0]);
+        assert_eq!(
+            hash_table.exponents[matrix.pivots[0].columns[0] as usize],
+            [1, 1, 1]
+        );
+        assert_eq!(
+            hash_table.exponents[matrix.pivots[0].columns[1] as usize],
+            [1, 1, 0]
+        );
         assert_eq!(matrix.pivots[1].basis_index, 2);
-        assert_eq!(hash_table.exponents[matrix.pivots[1].columns[0] as usize], [1,1,0]);
-        assert_eq!(hash_table.exponents[matrix.pivots[1].columns[1] as usize], [0,2,0]);
+        assert_eq!(
+            hash_table.exponents[matrix.pivots[1].columns[0] as usize],
+            [1, 1, 0]
+        );
+        assert_eq!(
+            hash_table.exponents[matrix.pivots[1].columns[1] as usize],
+            [0, 2, 0]
+        );
     }
     #[test]
     fn test_add_todo() {
-        let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-        vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-        vec![vec![0,0,1], vec![0,0,0]]];
+        let fc: Characteristic = 65521;
+        let cfs: Vec<CoeffVec> = vec![vec![-2, 65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps: Vec<Vec<ExpVec>> = vec![
+            vec![vec![0, 3, 1], vec![1, 1, 0]],
+            vec![vec![0, 2, 0], vec![1, 1, 0]],
+            vec![vec![0, 0, 2], vec![1, 0, 0]],
+            vec![vec![0, 0, 1], vec![0, 0, 0]],
+        ];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
-        let mult: ExpVec = vec![0,3,0];
+        let mult: ExpVec = vec![0, 3, 0];
         let mut matrix = Matrix::new();
 
         matrix.add_todo(0, &mult, &basis, &mut hash_table);
         assert_eq!(matrix.todo[0].basis_index, 0);
-        assert_eq!(matrix.todo[0].columns, [0,7]);
+        assert_eq!(matrix.todo[0].columns, [0, 7]);
     }
 
     #[test]
     fn test_add_pivot() {
-        let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-        vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-        vec![vec![0,0,1], vec![0,0,0]]];
+        let fc: Characteristic = 65521;
+        let cfs: Vec<CoeffVec> = vec![vec![-2, 65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps: Vec<Vec<ExpVec>> = vec![
+            vec![vec![0, 3, 1], vec![1, 1, 0]],
+            vec![vec![0, 2, 0], vec![1, 1, 0]],
+            vec![vec![0, 0, 2], vec![1, 0, 0]],
+            vec![vec![0, 0, 1], vec![0, 0, 0]],
+        ];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
-        let mult: ExpVec = vec![0,3,0];
+        let mult: ExpVec = vec![0, 3, 0];
         let mut matrix = Matrix::new();
 
         matrix.add_pivot(0, &mult, &basis, &mut hash_table);
         assert_eq!(matrix.pivots[0].basis_index, 0);
-        assert_eq!(matrix.pivots[0].columns, [0,7]);
+        assert_eq!(matrix.pivots[0].columns, [0, 7]);
     }
 
     #[test]
     fn test_get_next_bunch_of_pairs() {
-        let fc : Characteristic = 65521;
-        let cfs : Vec<CoeffVec> = vec![vec![-2,65523], vec![1, -3],
-        vec![1, -1], vec![1, 1]];
-        let exps : Vec<Vec<ExpVec>> = vec![vec![vec![0,3,1], vec![1,1,0]],
-        vec![vec![0,2,0], vec![1,1,0]], vec![vec![0,0,2], vec![1,0,0]],
-        vec![vec![0,0,1], vec![0,0,0]]];
+        let fc: Characteristic = 65521;
+        let cfs: Vec<CoeffVec> = vec![vec![-2, 65523], vec![1, -3], vec![1, -1], vec![1, 1]];
+        let exps: Vec<Vec<ExpVec>> = vec![
+            vec![vec![0, 3, 1], vec![1, 1, 0]],
+            vec![vec![0, 2, 0], vec![1, 1, 0]],
+            vec![vec![0, 0, 2], vec![1, 0, 0]],
+            vec![vec![0, 0, 1], vec![0, 0, 0]],
+        ];
         let mut hash_table = HashTable::new(&exps);
         let basis = Basis::new::<i32>(&mut hash_table, fc, cfs, exps);
 
@@ -650,9 +856,9 @@ mod tests {
         assert_eq!(matrix.columns.len(), 1);
         assert_eq!(matrix.todo.len(), 1);
         assert_eq!(matrix.todo[0].basis_index, 1);
-        assert_eq!(matrix.todo[0].columns, [3,4]);
+        assert_eq!(matrix.todo[0].columns, [3, 4]);
         assert_eq!(matrix.pivots.len(), 1);
         assert_eq!(matrix.pivots[0].basis_index, 0);
-        assert_eq!(matrix.pivots[0].columns, [3,5]);
+        assert_eq!(matrix.pivots[0].columns, [3, 5]);
     }
 }

@@ -7,12 +7,19 @@ edition = "2024"
 rand = "0.9.0"
 is_prime = "2.0.9"
 rayon = "1.10.0"
+itertools = "0.14.0"
+
+[build]
+rustflaags = ["-C", "target-cpu=native"]
 
 [profile.dev]
 opt-level = 0
 
 [profile.release]
 opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
 
 [profile.profiling]
 inherits = "release"
