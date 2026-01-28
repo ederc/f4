@@ -1,50 +1,41 @@
-mod primitives;
-mod matrix;
-mod io;
-mod hash_table;
-mod pairs;
+#![feature(portable_simd)]
 mod arithmetic;
 mod basis;
+mod hash_table;
+mod io;
+mod matrix;
+mod pairs;
+mod primitives;
 
-use std::time::{
-    Duration,
-    Instant,
-};
+use std::time::{Duration, Instant};
 
-use crate::io::{
-    read_file,
-    Config,
-};
+use crate::io::{Config, read_file};
 
-use crate::basis::{
-    Basis,
-};
+use crate::basis::Basis;
 
-use crate::hash_table::{
-    HashTable,
-};
+use crate::hash_table::HashTable;
 
-use crate::pairs::{
-    PairSet,
-};
+use crate::pairs::PairSet;
 
-use crate::matrix::{
-    Matrix,
-};
+use crate::matrix::Matrix;
 
 fn main() {
     let overall_time = Instant::now();
-    let mut pre_overall_time = Duration::new(0,0);
-    let mut post_overall_time = Duration::new(0,0);
-    let mut up_overall_time  = Duration::new(0,0);
-    let mut la_overall_time  = Duration::new(0,0);
+    let mut pre_overall_time = Duration::new(0, 0);
+    let mut post_overall_time = Duration::new(0, 0);
+    let mut up_overall_time = Duration::new(0, 0);
+    let mut la_overall_time = Duration::new(0, 0);
     let config = Config::new();
     let (variables, characteristic, coefficients, exponents) = read_file(config);
     let mut hash_table = HashTable::new(&exponents);
     let mut basis = Basis::new::<i32>(&mut hash_table, characteristic, coefficients, exponents);
     let mut pairs = PairSet::new();
-    println!("deg     sel   pairs        matrix        density              new  data             round time");
-    println!("----------------------------------------------------------------------------------------------");
+    println!(
+        "deg     sel   pairs        matrix        density              new  data             round time"
+    );
+    println!(
+        "----------------------------------------------------------------------------------------------"
+    );
     loop {
         let rd_time = Instant::now();
         if (basis.previous_length as usize) < basis.elements.len() {
@@ -77,27 +68,55 @@ fn main() {
     //
     // // printing info
     // println!("{:13.3} sec ", rd_time.elapsed().as_secs_f64());
-    println!("----------------------------------------------------------------------------------------------");
+    println!(
+        "----------------------------------------------------------------------------------------------"
+    );
     println!("length of basis: {}", basis.leading_ideal.len());
-    println!("----------------------------------------------------------------------------------------------");
+    println!(
+        "----------------------------------------------------------------------------------------------"
+    );
     println!("hash table capacity: {}", hash_table.length.ilog2());
-    println!("hash table insert data: {} -> {} ({:3.3}%) -> {} ({:3.3}%)", hash_table.nr_in,
+    println!(
+        "hash table insert data: {} -> {} ({:3.3}%) -> {} ({:3.3}%)",
+        hash_table.nr_in,
         hash_table.nr_in_ex,
         (hash_table.nr_in_ex as f64) / (hash_table.nr_in as f64) * 100.0,
         hash_table.nr_in_new,
-        (hash_table.nr_in_new as f64) / (hash_table.nr_in as f64) * 100.0);
-    println!("----------------------------------------------------------------------------------------------");
-    println!("overall time:        {:13.3} sec", overall_time.elapsed().as_secs_f64());
-    println!("----------------------------------------------------------------------------------------------");
-    println!("update time:         {:13.3} sec {:6.1}%", up_overall_time.as_secs_f64(),
-        up_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
-    println!("preprocessing time:  {:13.3} sec {:6.1}%", pre_overall_time.as_secs_f64(),
-        pre_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
-    println!("linear algebra time: {:13.3} sec {:6.1}%", la_overall_time.as_secs_f64(),
-        la_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
-    println!("postprocessingt time: {:12.3} sec {:6.1}%", post_overall_time.as_secs_f64(),
-        post_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0);
-    println!("----------------------------------------------------------------------------------------------");
+        (hash_table.nr_in_new as f64) / (hash_table.nr_in as f64) * 100.0
+    );
+    println!(
+        "----------------------------------------------------------------------------------------------"
+    );
+    println!(
+        "overall time:        {:13.3} sec",
+        overall_time.elapsed().as_secs_f64()
+    );
+    println!(
+        "----------------------------------------------------------------------------------------------"
+    );
+    println!(
+        "update time:         {:13.3} sec {:6.1}%",
+        up_overall_time.as_secs_f64(),
+        up_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0
+    );
+    println!(
+        "preprocessing time:  {:13.3} sec {:6.1}%",
+        pre_overall_time.as_secs_f64(),
+        pre_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0
+    );
+    println!(
+        "linear algebra time: {:13.3} sec {:6.1}%",
+        la_overall_time.as_secs_f64(),
+        la_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0
+    );
+    println!(
+        "postprocessingt time: {:12.3} sec {:6.1}%",
+        post_overall_time.as_secs_f64(),
+        post_overall_time.as_secs_f64() / overall_time.elapsed().as_secs_f64() * 100.0
+    );
+    println!(
+        "----------------------------------------------------------------------------------------------"
+    );
 
     // for (i,e) in basis.elements.into_iter().filter(|x| x.is_redundant == false).enumerate() {
     //     println!("lm[{}] = {:?} (#mons {} -- redundant? {})",

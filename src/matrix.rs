@@ -1,9 +1,13 @@
+use itertools::CircularTupleWindows;
 use itertools::Itertools;
 use rayon::prelude::*;
+use std::arch::aarch64::uint16x4x4_t;
 use std::collections::HashSet;
 use std::ffi::CString;
-use std::io::stdout;
 use std::io::Write;
+use std::io::stdout;
+
+use std::simd::{Simd, i32x4, i64x4, u32x4, usizex4};
 
 use crate::arithmetic::i32::modular_inverse;
 
@@ -240,137 +244,96 @@ impl Matrix {
     }
 
     fn apply_reducer(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
+        self.apply_reducer_no_simd(dense_row, col_idx, basis);
+        // #[cfg(target_arch = "aarch64")]
+        // unsafe {
+        //     self.apply_reducer_aarch64(dense_row, col_idx, basis)
+        // };
+        // #[cfg(not(target_arch = "aarch64"))]
+        // self.apply_reducer_no_simd(dense_row, col_idx, basis);
+    }
+
+    #[cfg(any(target_arch = "aarch64"))]
+    unsafe fn apply_reducer_aarch64(
+        &self,
+        dense_row: &mut DenseRow,
+        col_idx: usize,
+        basis: &Basis,
+    ) {
+        use std::arch::aarch64::*;
+
         let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
+
         let reducer = &self.pivots[self.pivot_lookup[col_idx]];
         let reducer_coefficients = &basis.elements[reducer.basis_index as usize].coefficients;
         let reducer_columns = &reducer.columns;
-        debug_assert!(reducer_columns.len() == reducer_coefficients.len());
+        // debug_assert!(reducer_columns.len() == reducer_coefficients.len());
 
         let multiplier = dense_row[col_idx];
 
-        // for i in (0..reducer_columns.len()).to_vec().chunks(2) {
-        //     let col = reducer_columns[i.0 as usize];
-        //     dense_row[col] -= multiplier * reducer_coefficients[i] as i64;
-        //     dense_row[col] += (dense_row[col] >> 63) & characteristic_2;
-        // }
-        // for (i, c) in reducer_columns.into_iter().enumerate() {
-        //     dense_row[*c as usize] -= multiplier * reducer_coefficients[i] as i64;
-        //     dense_row[*c as usize] += (dense_row[*c as usize] >> 63) & characteristic_2;
-        // }
-        // update dense row applying multiplied reducer
-        // for i in (0..reducer_columns.len()).chunks(2) {}
-        // for (r, c) in (reducer_columns, reducer_coefficients).into_iter() {
-        //     dense_row[r as usize] = dense_row[r as usize] - multiplier * c as i64;
-        //     dense_row[r as usize] = (dense_row[r as usize] >> 63) & characteristic_2;
-        // }
-        //
-        // let cs = 4;
-        // for i in 0..reducer_columns.len() {
-        //     let idx = reducer_columns[i] as usize;
-        //     dense_row[idx] -= multiplier * reducer_coefficients[i] as DenseRowCoefficient;
-        //     dense_row[idx] += (dense_row[idx] >> 63) & characteristic_2;
-        // }
+        // start of neon code
+        let characteristic_2_v: int64x2_t = vmovq_n_s64(characteristic_2);
+        let multiplier_v: int32x2_t = vmov_n_s32(multiplier as i32);
 
-        // let a = reducer_columns;
-        // let b = reducer_coefficients;
+        // let mut i = offset;
+        let mut tmp = [0 as i64; 2];
+        let raw_tmp = &mut tmp as *mut i64;
+        // let mut dense_row_v: int64x2_t = vld1q_s64(raw_tmp);
+        // let mut result_v: int64x2_t = vld1q_s64(raw_tmp);
+        // let mut reducer_coefficients_v: int32x4_t = vld1q_s32(reducer_coefficients.as_ptr());
 
-        let cs = 8;
-        // let of = reducer_columns.len();
-
-        // for i in 0..of {
-        //     multiply_add_with_check(
-        //         &mut dense_row[a[i] as usize],
-        //         multiplier,
-        //         b[i] as DenseRowCoefficient,
-        //         characteristic_2,
-        //     );
-        // }
-        // for i in (of..reducer_columns.len()).step_by(cs) {
-        //     multiply_add_with_check(
-        //         &mut dense_row[a[i] as usize],
-        //         multiplier,
-        //         b[i] as DenseRowCoefficient,
-        //         characteristic_2,
-        //     );
-
-        //     multiply_add_with_check(
-        //         &mut dense_row[a[i + 1] as usize],
-        //         multiplier,
-        //         b[i + 1] as DenseRowCoefficient,
-        //         characteristic_2,
-        //     );
-
-        //     multiply_add_with_check(
-        //         &mut dense_row[a[i + 2] as usize],
-        //         multiplier,
-        //         b[i + 2] as DenseRowCoefficient,
-        //         characteristic_2,
-        //     );
-
-        //     multiply_add_with_check(
-        //         &mut dense_row[a[i + 3] as usize],
-        //         multiplier,
-        //         b[i + 3] as DenseRowCoefficient,
-        //         characteristic_2,
-        //     );
-        // multiply_add_with_check(
-        //     &mut dense_row[a[i + 4] as usize],
-        //     multiplier,
-        //     b[i + 4] as DenseRowCoefficient,
-        //     characteristic_2,
-        // );
-
-        // multiply_add_with_check(
-        //     &mut dense_row[a[i + 5] as usize],
-        //     multiplier,
-        //     b[i + 5] as DenseRowCoefficient,
-        //     characteristic_2,
-        // );
-
-        // multiply_add_with_check(
-        //     &mut dense_row[a[i + 6] as usize],
-        //     multiplier,
-        //     b[i + 6] as DenseRowCoefficient,
-        //     characteristic_2,
-        // );
-
-        // multiply_add_with_check(
-        //     &mut dense_row[a[i + 7] as usize],
-        //     multiplier,
-        //     b[i + 7] as DenseRowCoefficient,
-        //     characteristic_2,
-        // );
-        // }
-        // for (a, b) in reducer_columns[0..of]
-        //     .iter()
-        //     .zip(reducer_coefficients[0..of])
-        // {
-        //     // println!("{:?} -> {:?}", a, b);
-        //     // let mut tmp = dense_row[a[0] as usize] - multiplier * b[0] as i64;
-        //     // tmp += (tmp >> 63) & characteristic_2;
-        //     // dense_row[a[0] as usize] = tmp;
-        //     multiply_add_with_check(
-        //         &mut dense_row[a as usize],
-        //         multiplier,
-        //         b as DenseRowCoefficient,
-        //         characteristic_2,
-        //     );
-        // }
+        let cs = 16;
         for (a, b) in reducer_columns
             .chunks_exact(cs)
             .zip(reducer_coefficients.chunks_exact(cs))
         {
-            // println!("{:?} -> {:?}", a, b);
-            // let mut tmp = dense_row[a[0] as usize] - multiplier * b[0] as i64;
-            // tmp += (tmp >> 63) & characteristic_2;
-            // dense_row[a[0] as usize] = tmp;
-            for i in 0..cs {
-                multiply_add_with_check(
-                    &mut dense_row[a[i] as usize],
-                    multiplier,
-                    b[i] as DenseRowCoefficient,
-                    characteristic_2,
+            for i in (0..cs).step_by(4) {
+                tmp[0] = dense_row[a[i] as usize];
+                tmp[1] = dense_row[a[i + 1] as usize];
+                let dense_row_v = vld1q_s64(tmp.as_ptr());
+                let reducer_coefficients_v = vld1q_s32(b[i..i + 4].as_ptr());
+                /* multiply and subtract */
+                let result_v = vmlsl_s32(
+                    dense_row_v,
+                    vget_low_s32(reducer_coefficients_v),
+                    multiplier_v,
                 );
+                // let mask: int64x2_t  = vreinterpretq_s64_u64(vcltzq_s64(result_v));
+                // vst1q_s64(raw_tmp, vaddq_s64(result_v, vandq_s64(mask, characteristic_2_v)));
+                vst1q_s64(
+                    raw_tmp,
+                    vaddq_s64(
+                        result_v,
+                        vandq_s64(
+                            vreinterpretq_s64_u64(vcltzq_s64(result_v)),
+                            characteristic_2_v,
+                        ),
+                    ),
+                );
+                dense_row[a[i] as usize] = tmp[0];
+                dense_row[a[i + 1] as usize] = tmp[1];
+                tmp[0] = dense_row[a[i + 2] as usize];
+                tmp[1] = dense_row[a[i + 3] as usize];
+                let dense_row_v = vld1q_s64(tmp.as_ptr());
+                /* multiply and subtract */
+                let result_v = vmlsl_s32(
+                    dense_row_v,
+                    vget_high_s32(reducer_coefficients_v),
+                    multiplier_v,
+                );
+                // let mask: int64x2_t  = vreinterpretq_s64_u64(vcltzq_s64(result_v));
+                vst1q_s64(
+                    raw_tmp,
+                    vaddq_s64(
+                        result_v,
+                        vandq_s64(
+                            vreinterpretq_s64_u64(vcltzq_s64(result_v)),
+                            characteristic_2_v,
+                        ),
+                    ),
+                );
+                dense_row[a[i + 2] as usize] = tmp[0];
+                dense_row[a[i + 3] as usize] = tmp[1];
             }
         }
         for (a, b) in reducer_columns
@@ -383,6 +346,88 @@ impl Matrix {
             // let mut tmp = dense_row[a[0] as usize] - multiplier * b[0] as i64;
             // tmp += (tmp >> 63) & characteristic_2;
             // dense_row[a[0] as usize] = tmp;
+            multiply_add_with_check(
+                &mut dense_row[*a as usize],
+                multiplier,
+                *b as DenseRowCoefficient,
+                characteristic_2,
+            );
+        }
+    }
+    fn apply_reducer_no_simd(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
+        let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
+        let reducer = &self.pivots[self.pivot_lookup[col_idx]];
+        let reducer_coefficients = &basis.elements[reducer.basis_index as usize].coefficients;
+        let reducer_columns = &reducer.columns;
+        debug_assert!(reducer_columns.len() == reducer_coefficients.len());
+
+        let multiplier = dense_row[col_idx];
+
+        let cs = 12;
+        reducer_columns
+            .chunks_exact(cs)
+            .zip(reducer_coefficients.chunks_exact(cs))
+            .for_each(|(a, b)| {
+                for i in 0..cs {
+                    multiply_add_with_check(
+                        &mut dense_row[a[i] as usize],
+                        multiplier,
+                        b[i] as DenseRowCoefficient,
+                        characteristic_2,
+                    );
+                }
+            });
+        reducer_columns
+            .chunks_exact(cs)
+            .remainder()
+            .iter()
+            .zip(reducer_coefficients.chunks_exact(cs).remainder())
+            .for_each(|(a, b)| {
+                multiply_add_with_check(
+                    &mut dense_row[*a as usize],
+                    multiplier,
+                    *b as DenseRowCoefficient,
+                    characteristic_2,
+                );
+            });
+    }
+
+    fn apply_reducer_portable_simd(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
+        let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
+        let c2v = i64x4::splat(characteristic_2);
+        let reducer = &self.pivots[self.pivot_lookup[col_idx]];
+        let reducer_coefficients = &basis.elements[reducer.basis_index as usize].coefficients;
+        let reducer_columns = &reducer.columns;
+        debug_assert!(reducer_columns.len() == reducer_coefficients.len());
+
+        let multiplier = dense_row[col_idx];
+        let mulv = i64x4::splat(multiplier);
+
+        let cs = 4;
+        for (a, b) in reducer_columns
+            .chunks_exact(cs)
+            .zip(reducer_coefficients.chunks_exact(cs))
+        {
+            let bv = i64x4::from_array([
+                b[0] as DenseRowCoefficient,
+                b[1] as DenseRowCoefficient,
+                b[2] as DenseRowCoefficient,
+                b[3] as DenseRowCoefficient,
+            ]);
+            let idx =
+                usizex4::from_array([a[0] as usize, a[1] as usize, a[2] as usize, a[3] as usize]);
+            let mut dv = i64x4::gather_or_default(&dense_row, idx);
+            dv -= mulv * bv;
+            dv += (dv >> 63) & c2v;
+            dv.scatter(dense_row, idx);
+        }
+
+        for (a, b) in reducer_columns
+            .chunks_exact(cs)
+            .remainder()
+            .iter()
+            .zip(reducer_coefficients.chunks_exact(cs).remainder())
+        {
             multiply_add_with_check(
                 &mut dense_row[*a as usize],
                 multiplier,
@@ -439,9 +484,24 @@ impl Matrix {
         let start_column = row.columns[0] as usize;
         let last_column = self.columns.len();
 
-        for (i, c) in row.columns.iter().enumerate() {
-            dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
+        let cs = 32;
+        for (a, b) in row.columns.chunks_exact(cs).zip(cfs.chunks_exact(cs)) {
+            for i in 0..cs {
+                dense_row[a[i] as usize] = b[i] as DenseRowCoefficient;
+            }
         }
+        for (a, b) in row
+            .columns
+            .chunks_exact(cs)
+            .remainder()
+            .iter()
+            .zip(cfs.chunks_exact(cs).remainder())
+        {
+            dense_row[*a as usize] = *b as DenseRowCoefficient;
+        }
+        // for (i, c) in row.columns.iter().enumerate() {
+        //     dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
+        // }
 
         let mut new_pivot_index = 0;
         for i in start_column..last_column {
