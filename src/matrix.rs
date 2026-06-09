@@ -4,10 +4,10 @@ use rayon::prelude::*;
 use std::arch::aarch64::uint16x4x4_t;
 use std::collections::HashSet;
 use std::ffi::CString;
-use std::io::Write;
 use std::io::stdout;
+use std::io::Write;
 
-use std::simd::{Simd, i32x4, i64x4, u32x4, usizex4};
+use std::simd::{i32x4, i64x4, u32x4, usizex4, Simd};
 
 use crate::arithmetic::i32::modular_inverse;
 
@@ -357,11 +357,14 @@ impl Matrix {
     fn apply_reducer_no_simd(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
         let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
         let reducer = &self.pivots[self.pivot_lookup[col_idx]];
-        let reducer_coefficients = &basis.elements[reducer.basis_index as usize].coefficients;
-        let reducer_columns = &reducer.columns;
+        let reducer_coefficients = &basis.elements[reducer.basis_index as usize]
+            .coefficients
+            .as_slice();
+        let reducer_columns = &reducer.columns.as_slice();
         debug_assert!(reducer_columns.len() == reducer_coefficients.len());
 
         let multiplier = dense_row[col_idx];
+        let dense_row = dense_row.as_mut_slice();
 
         let cs = 12;
         reducer_columns
@@ -370,7 +373,7 @@ impl Matrix {
             .for_each(|(a, b)| {
                 for i in 0..cs {
                     multiply_add_with_check(
-                        &mut dense_row[a[i] as usize],
+                        unsafe { dense_row.get_unchecked_mut(a[i] as usize) },
                         multiplier,
                         b[i] as DenseRowCoefficient,
                         characteristic_2,
@@ -384,7 +387,7 @@ impl Matrix {
             .zip(reducer_coefficients.chunks_exact(cs).remainder())
             .for_each(|(a, b)| {
                 multiply_add_with_check(
-                    &mut dense_row[*a as usize],
+                    unsafe { dense_row.get_unchecked_mut(*a as usize) },
                     multiplier,
                     *b as DenseRowCoefficient,
                     characteristic_2,
