@@ -66,6 +66,7 @@ impl Matrix {
         stdout().flush().unwrap();
         let mut start = 0;
         let mut gens = HashSet::new();
+        let next_pairs = next_pairs.as_slice();
         while start < next_pairs.len() {
             let first_generator = next_pairs[start].generators.1;
             let lcm = next_pairs[start].lcm;
@@ -243,7 +244,7 @@ impl Matrix {
         self.link_pivots_to_columns();
     }
 
-    fn apply_reducer(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
+    fn apply_reducer(&self, dense_row: &mut [DenseRowCoefficient], col_idx: usize, basis: &Basis) {
         self.apply_reducer_no_simd(dense_row, col_idx, basis);
         // #[cfg(target_arch = "aarch64")]
         // unsafe {
@@ -354,7 +355,12 @@ impl Matrix {
             );
         }
     }
-    fn apply_reducer_no_simd(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
+    fn apply_reducer_no_simd(
+        &self,
+        dense_row: &mut [DenseRowCoefficient],
+        col_idx: usize,
+        basis: &Basis,
+    ) {
         let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
         let reducer = &self.pivots[self.pivot_lookup[col_idx]];
         let reducer_coefficients = &basis.elements[reducer.basis_index as usize]
@@ -364,7 +370,7 @@ impl Matrix {
         debug_assert!(reducer_columns.len() == reducer_coefficients.len());
 
         let multiplier = dense_row[col_idx];
-        let dense_row = dense_row.as_mut_slice();
+        // let dense_row = dense_row.as_mut_slice();
 
         let cs = 12;
         reducer_columns
@@ -442,7 +448,7 @@ impl Matrix {
 
     fn update_interreduced_pivot(
         &mut self,
-        dense_row: DenseRow,
+        dense_row: &[DenseRowCoefficient],
         col_idx: usize,
         basis: &mut Basis,
     ) {
@@ -457,7 +463,12 @@ impl Matrix {
         basis.elements[self.pivots[pivot_idx].basis_index as usize].coefficients = cfs;
     }
 
-    fn add_new_pivot(&mut self, dense_row: DenseRow, col_idx: usize, basis: &mut Basis) {
+    fn add_new_pivot(
+        &mut self,
+        dense_row: &[DenseRowCoefficient],
+        col_idx: usize,
+        basis: &mut Basis,
+    ) {
         let (cols, cfs) = generate_sparse_row_from_dense_row(
             dense_row,
             col_idx,
@@ -507,12 +518,13 @@ impl Matrix {
         // }
 
         let mut new_pivot_index = 0;
+        let dense_row = dense_row.as_mut_slice();
         for i in start_column..last_column {
             if dense_row[i] != 0 {
                 dense_row[i] %= characteristic;
                 if dense_row[i] != 0 {
                     if self.pivot_lookup[i] != usize::MAX {
-                        self.apply_reducer(&mut dense_row, i, basis);
+                        self.apply_reducer(dense_row, i, basis);
                     } else {
                         if new_pivot_index == 0 {
                             new_pivot_index = i;
@@ -545,13 +557,12 @@ impl Matrix {
                 dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
             }
 
+            let dense_row = dense_row.as_mut_slice();
             for i in start_column..last_column {
                 if dense_row[i] != 0 {
                     dense_row[i] %= characteristic;
-                    if dense_row[i] != 0 {
-                        if self.pivot_lookup[i] != usize::MAX {
-                            self.apply_reducer(&mut dense_row, i, basis);
-                        }
+                    if dense_row[i] != 0 && self.pivot_lookup[i] != usize::MAX {
+                        self.apply_reducer(dense_row, i, basis);
                     }
                 }
             }
@@ -625,7 +636,7 @@ fn multiply_add_with_check(
 }
 
 fn generate_sparse_row_from_dense_row(
-    dense_row: DenseRow,
+    dense_row: &[DenseRowCoefficient],
     col_idx: usize,
     characteristic: DenseRowCoefficient,
 ) -> (MonomVec, CoeffVec) {

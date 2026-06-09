@@ -93,49 +93,8 @@ impl PairSet {
                 }
             }
 
-            // // Gebauer-Möller: remove real multiples from new pairs
-            // let new_pairs = new_pairs.as_mut_slice();
-            // for i in 0..new_pairs.len() {
-            //     if new_pairs[i].criterion == Criterion::Keep {
-            //         for j in 0..i {
-            //             if new_pairs[j].criterion != Criterion::Chain
-            //                 && new_pairs[j].lcm != new_pairs[i].lcm
-            //                 && hash_table.divides_pairs(new_pairs[j].lcm, new_pairs[i].lcm)
-            //             {
-            //                 new_pairs[i].criterion = Criterion::Chain;
-            //                 break;
-            //             }
-            //         }
-            //     }
-            // }
-
-            // // Gebauer-Möller: remove same lcm pairs from new pairs
-            // for i in 0..new_pairs.len() {
-            //     if new_pairs[i].criterion == Criterion::Product {
-            //         for j in 0..new_pairs.len() {
-            //             if i != j && new_pairs[i].lcm == new_pairs[j].lcm {
-            //                 new_pairs[j].criterion = Criterion::Chain;
-            //             }
-            //         }
-            //     } else if new_pairs[i].criterion == Criterion::Keep && i > 0 {
-            //         for j in (0..i).rev() {
-            //             if new_pairs[j].lcm != new_pairs[i].lcm {
-            //                 break;
-            //             } else if new_pairs[j].criterion == Criterion::Keep {
-            //                 new_pairs[i].criterion = Criterion::Chain;
-            //                 break;
-            //             }
-            //         }
-            //     }
-            // }
-
-            // no sorting here, we sort just before extracting
-            // the pairs in symbolic preprocessing
-            self.list.append(&mut new_pairs.to_vec());
-
             // bookkeeping of applied criteria
-            self.nr_product_criterion_applied += self
-                .list
+            self.nr_product_criterion_applied += new_pairs
                 .iter()
                 .filter(|p| p.criterion == Criterion::Product)
                 .count();
@@ -144,8 +103,18 @@ impl PairSet {
                 .iter()
                 .filter(|p| p.criterion == Criterion::Chain)
                 .count();
+            self.nr_chain_criterion_applied += new_pairs
+                .iter()
+                .filter(|p| p.criterion == Criterion::Chain)
+                .count();
+            // no sorting here, we sort just before extracting
+            // the pairs in symbolic preprocessing
+            // self.list.append(&mut new_pairs.to_vec());
             // remove useless pairs
-            self.list.retain(|p| p.criterion == Criterion::Keep);
+            let mut new_pairs = new_pairs.to_vec();
+            new_pairs.retain(|p| p.criterion == Criterion::Keep);
+            self.list.retain(|p| p.criterion != Criterion::Chain);
+            self.list.append(&mut new_pairs);
         }
     }
 
