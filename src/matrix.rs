@@ -244,8 +244,14 @@ impl Matrix {
         self.link_pivots_to_columns();
     }
 
-    fn apply_reducer(&self, dense_row: &mut [DenseRowCoefficient], col_idx: usize, basis: &Basis) {
-        self.apply_reducer_no_simd(dense_row, col_idx, basis);
+    fn apply_reducer(
+        &self,
+        dense_row: &mut [DenseRowCoefficient],
+        lookup_idx: usize,
+        col_idx: usize,
+        basis: &Basis,
+    ) {
+        self.apply_reducer_no_simd(dense_row, lookup_idx, col_idx, basis);
         // #[cfg(target_arch = "aarch64")]
         // unsafe {
         //     self.apply_reducer_aarch64(dense_row, col_idx, basis)
@@ -258,6 +264,7 @@ impl Matrix {
     unsafe fn apply_reducer_aarch64(
         &self,
         dense_row: &mut DenseRow,
+        lookup_idx: usize,
         col_idx: usize,
         basis: &Basis,
     ) {
@@ -358,50 +365,59 @@ impl Matrix {
     fn apply_reducer_no_simd(
         &self,
         dense_row: &mut [DenseRowCoefficient],
+        lookup_idx: usize,
         col_idx: usize,
         basis: &Basis,
     ) {
         let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
-        let reducer = &self.pivots[self.pivot_lookup[col_idx]];
-        let reducer_coefficients = &basis.elements[reducer.basis_index as usize]
-            .coefficients
-            .as_slice();
+        let reducer = unsafe { self.pivots.get_unchecked(lookup_idx) };
+        let reducer_coefficients = unsafe {
+            basis
+                .elements
+                .get_unchecked(reducer.basis_index as usize)
+                .coefficients
+                .as_slice()
+        };
         let reducer_columns = &reducer.columns.as_slice();
         debug_assert!(reducer_columns.len() == reducer_coefficients.len());
 
-        let multiplier = dense_row[col_idx];
-        // let dense_row = dense_row.as_mut_slice();
+        let multiplier = unsafe { *dense_row.get_unchecked(col_idx) };
 
-        let cs = 12;
-        reducer_columns
-            .chunks_exact(cs)
-            .zip(reducer_coefficients.chunks_exact(cs))
-            .for_each(|(a, b)| {
-                for i in 0..cs {
-                    multiply_add_with_check(
-                        unsafe { dense_row.get_unchecked_mut(a[i] as usize) },
-                        multiplier,
-                        b[i] as DenseRowCoefficient,
-                        characteristic_2,
-                    );
-                }
-            });
-        reducer_columns
-            .chunks_exact(cs)
-            .remainder()
-            .iter()
-            .zip(reducer_coefficients.chunks_exact(cs).remainder())
-            .for_each(|(a, b)| {
+        const CHUNK_SIZE: usize = 12;
+        let (cf_chunks, cf_remainder) = reducer_coefficients.as_chunks::<CHUNK_SIZE>();
+        let (cl_chunks, cl_remainder) = reducer_columns.as_chunks::<CHUNK_SIZE>();
+        cf_chunks.iter().zip(cl_chunks).for_each(|(cfs, cls)| {
+            cfs.iter().zip(cls).for_each(|(&cf, &cl)| {
                 multiply_add_with_check(
-                    unsafe { dense_row.get_unchecked_mut(*a as usize) },
+                    unsafe { dense_row.get_unchecked_mut(cl as usize) },
+                    // &mut dense_row[cl as usize],
                     multiplier,
-                    *b as DenseRowCoefficient,
+                    cf as DenseRowCoefficient,
+                    characteristic_2,
+                );
+            })
+        });
+        cf_remainder
+            .iter()
+            .zip(cl_remainder)
+            .for_each(|(&cf, &cl)| {
+                multiply_add_with_check(
+                    unsafe { dense_row.get_unchecked_mut(cl as usize) },
+                    // &mut dense_row[cl as usize],
+                    multiplier,
+                    cf as DenseRowCoefficient,
                     characteristic_2,
                 );
             });
     }
 
-    fn apply_reducer_portable_simd(&self, dense_row: &mut DenseRow, col_idx: usize, basis: &Basis) {
+    fn apply_reducer_portable_simd(
+        &self,
+        dense_row: &mut DenseRow,
+        lookup_idx: usize,
+        col_idx: usize,
+        basis: &Basis,
+    ) {
         let characteristic_2 = (basis.characteristic as DenseRowCoefficient).pow(2);
         let c2v = i64x4::splat(characteristic_2);
         let reducer = &self.pivots[self.pivot_lookup[col_idx]];
@@ -496,9 +512,8 @@ impl Matrix {
         let characteristic = basis.characteristic as DenseRowCoefficient;
 
         let start_column = row.columns[0] as usize;
-        let last_column = self.columns.len();
 
-        let cs = 32;
+        let cs = 1;
         for (a, b) in row.columns.chunks_exact(cs).zip(cfs.chunks_exact(cs)) {
             for i in 0..cs {
                 dense_row[a[i] as usize] = b[i] as DenseRowCoefficient;
@@ -519,12 +534,13 @@ impl Matrix {
 
         let mut new_pivot_index = 0;
         let dense_row = dense_row.as_mut_slice();
-        for i in start_column..last_column {
+        for i in start_column..dense_row.len() {
             if dense_row[i] != 0 {
                 dense_row[i] %= characteristic;
                 if dense_row[i] != 0 {
-                    if self.pivot_lookup[i] != usize::MAX {
-                        self.apply_reducer(dense_row, i, basis);
+                    let lui = unsafe { *self.pivot_lookup.get_unchecked(i) };
+                    if lui != usize::MAX {
+                        self.apply_reducer(dense_row, lui, i, basis);
                     } else {
                         if new_pivot_index == 0 {
                             new_pivot_index = i;
@@ -550,19 +566,21 @@ impl Matrix {
             let characteristic = basis.characteristic as DenseRowCoefficient;
 
             let pivot_index = row.columns[0] as usize;
-            let start_column = row.columns[0 + 1] as usize;
-            let last_column = self.columns.len();
+            let start_column = row.columns[1] as usize;
 
             for (i, c) in row.columns.iter().enumerate() {
                 dense_row[*c as usize] = cfs[i] as DenseRowCoefficient;
             }
 
             let dense_row = dense_row.as_mut_slice();
-            for i in start_column..last_column {
+            for i in start_column..dense_row.len() {
                 if dense_row[i] != 0 {
                     dense_row[i] %= characteristic;
-                    if dense_row[i] != 0 && self.pivot_lookup[i] != usize::MAX {
-                        self.apply_reducer(dense_row, i, basis);
+                    if dense_row[i] != 0 {
+                        let lui = unsafe { *self.pivot_lookup.get_unchecked(i) };
+                        if lui != usize::MAX {
+                            self.apply_reducer(dense_row, lui, i, basis);
+                        }
                     }
                 }
             }

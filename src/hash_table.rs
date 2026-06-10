@@ -194,7 +194,7 @@ impl HashTable {
         }
         let ea = &self.exponents[ma as usize];
         let eb = &self.exponents[mb as usize];
-        return ea.into_iter().zip(eb).all(|(a, b)| *a <= *b);
+        ea.iter().zip(eb).all(|(a, b)| *a <= *b)
     }
 
     #[inline(always)]
@@ -210,7 +210,7 @@ impl HashTable {
         }
         let ea = &self.exponents[ma as usize];
         // let eb = &self.exponents[mb as usize];
-        return ea.into_iter().zip(eb).all(|(a, b)| *a <= *b);
+        ea.iter().zip(eb).all(|(a, b)| *a <= *b)
     }
 
     pub fn find_divisor(
@@ -221,12 +221,14 @@ impl HashTable {
         // let divisor_data = divisor_data_vec.as_slice();
         let ndmon = !&self.divisor_masks[mon as usize];
         let mon_exp_vec = &self.exponents[mon as usize];
-        for d in &basis.leading_ideal {
-            if self.divides_pre(d.1, d.0, mon_exp_vec, ndmon) {
-                return Some((d.2, self.get_difference(mon, d.1)));
-            }
+        match basis
+            .leading_ideal
+            .iter()
+            .find(|d| self.divides_pre(d.1, d.0, mon_exp_vec, ndmon))
+        {
+            Some(d) => return Some((d.2, self.get_difference(mon, d.1))),
+            None => return None,
         }
-        return None;
     }
 
     pub fn generate_multiplied_monomials(
@@ -250,9 +252,10 @@ impl HashTable {
 
     #[inline(always)]
     fn get_hash(&self, exp: &[Exponent]) -> HashValue {
+        let random_seed = self.random_seed.as_slice();
         return exp
             .iter()
-            .zip(&self.random_seed)
+            .zip(random_seed)
             .map(|(e, r)| (*e as HashTableLength).wrapping_mul(*r))
             .fold(0, |acc, x| acc.wrapping_add(x));
     }
@@ -363,28 +366,39 @@ impl HashTable {
         let div = self.map.len() - 1;
         let h = self.get_hash(&self.exponent_buffer);
         let mut k = h as usize;
-        let map_len = self.map.len();
         let map = self.map.as_slice();
         for i in 0..map.len() {
             k = (k + i) & div;
             let hm = map[k];
-            if hm == None {
-                break;
+            match map[k] {
+                None => break,
+                Some(hm) => {
+                    if &self.values[hm as usize] != &h {
+                        continue;
+                    }
+                    self.nr_in_ex += 1;
+                    if &self.exponents[hm as usize] != &self.exponent_buffer {
+                        continue;
+                    }
+                }
             }
-            if unsafe { self.values.get_unchecked(hm.unwrap() as usize) } != &h {
-                continue;
-            }
-            self.nr_in_ex += 1;
-            if unsafe { self.exponents.get_unchecked(hm.unwrap() as usize) }
-                != &self.exponent_buffer
-            {
-                continue;
-            }
+            // if hm == None {
+            //     break;
+            // }
+            // if unsafe { self.values.get_unchecked(hm.unwrap() as usize) } != &h {
+            //     continue;
+            // }
+            // self.nr_in_ex += 1;
+            // if unsafe { self.exponents.get_unchecked(hm.unwrap() as usize) }
+            //     != &self.exponent_buffer
+            // {
+            //     continue;
+            // }
             return hm.unwrap();
         }
         self.nr_in_new += 1;
         let pos = self.exponents.len();
-        self.map[k as usize] = Some(pos as HashTableLength);
+        self.map[k] = Some(pos as HashTableLength);
         self.degrees[pos] = get_degree(&self.exponent_buffer);
         self.divisor_masks[pos] = get_divisor_mask(
             &self.exponent_buffer,
@@ -410,7 +424,7 @@ fn get_divisor_mask(exp: &[Exponent], divisor_bounds: &[Exponent], range: usize)
     let e = &exp[0..range];
     e.into_iter()
         .cycle()
-        .zip(divisor_bounds.into_iter().enumerate())
+        .zip(divisor_bounds.iter().enumerate())
         .for_each(|(e, (i, d))| {
             if *e >= *d {
                 divisor_mask |= 1 << i;
